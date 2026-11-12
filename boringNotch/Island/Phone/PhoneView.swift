@@ -13,6 +13,9 @@ struct PhoneView: View {
     @ObservedObject private var link = PhoneLink.shared
     @State private var replyingTo: PhoneNotification?
     @State private var replyText = ""
+    @State private var showingApps = false
+    @State private var appSearch = ""
+    @ObservedObject private var streams = PhoneStreams.shared
 
     var body: some View {
         Group {
@@ -151,16 +154,35 @@ struct PhoneView: View {
             statusMessage
             HStack(spacing: 6) {
                 if link.status.connected {
-                    Button("Trennen") { Task { await link.disconnect() } }
+                    Button("Spiegeln") {
+                        PhoneStreams.shared.startMirror()
+                        vm.close()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    Button(showingApps ? "Mitteilungen" : "Apps") {
+                        showingApps.toggle()
+                        if showingApps { streams.requestApps() }
+                    }
                 } else {
                     Button("Verbinden") { Task { await link.connect() } }
                 }
-                pairButton(title: "Koppeln …")
+                if !link.status.connected { pairButton(title: "Koppeln …") }
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
         }
         .frame(width: 190, alignment: .leading)
+        .contextMenu {
+            Button("Verbindung trennen") { Task { await link.disconnect() } }
+            Button("Neu koppeln …") {
+                Task {
+                    if let url = await link.newPairingCode() {
+                        PairingWindow.shared.show(codeAt: url)
+                        vm.close()
+                    }
+                }
+            }
+        }
     }
 
     private func batterySymbol(_ level: Int) -> String {
@@ -175,9 +197,65 @@ struct PhoneView: View {
 
     // MARK: - Notifications
 
+    // MARK: - Apps
+
+    private var filteredApps: [PhoneApp] {
+        let query = appSearch.trimmingCharacters(in: .whitespaces)
+        return query.isEmpty ? streams.apps : streams.apps.filter { $0.name.localizedCaseInsensitiveContains(query) }
+    }
+
+    private var appPicker: some View {
+        VStack(spacing: 6) {
+            HStack(spacing: 8) {
+                TextField("App suchen", text: $appSearch)
+                    .textFieldStyle(.plain)
+                    .font(.callout)
+                    .padding(.vertical, 4)
+                    .padding(.horizontal, 9)
+                    .background(Capsule().fill(Color.white.opacity(0.09)))
+                if let message = streams.message {
+                    Text(message)
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                        .lineLimit(1)
+                }
+            }
+            if streams.apps.isEmpty {
+                IslandEmptyState(icon: "square.grid.2x2", text: "Lade die Apps vom Handy …")
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(alignment: .top, spacing: 4) {
+                        ForEach(filteredApps) { app in
+                            Button {
+                                streams.start(app)
+                                if streams.message == nil { vm.close() }
+                            } label: {
+                                VStack(spacing: 4) {
+                                    PhoneAppIcon(app: app)
+                                        .frame(width: 38, height: 38)
+                                    Text(app.name)
+                                        .font(.system(size: 10))
+                                        .foregroundStyle(.white)
+                                        .lineLimit(2)
+                                        .multilineTextAlignment(.center)
+                                }
+                                .frame(width: 66, height: 78, alignment: .top)
+                                .padding(.top, 4)
+                                .contentShape(RoundedRectangle(cornerRadius: 10))
+                            }
+                            .buttonStyle(IslandTileStyle())
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     @ViewBuilder
     private var notifications: some View {
-        if let target = replyingTo {
+        if showingApps, link.status.connected {
+            appPicker
+        } else if let target = replyingTo {
             replyEditor(for: target)
         } else if link.status.notifications.isEmpty {
             IslandEmptyState(icon: "bell.slash", text: link.status.connected ? "Keine Benachrichtigungen" : "Verbinde das Handy, um Benachrichtigungen zu sehen")
@@ -339,5 +417,23 @@ private struct PairingCodeView: View {
         }
         .padding(24)
         .frame(width: 460, height: 540)
+    }
+}
+
+/// Icon the daemon downloaded from the phone; a generic symbol until it is there.
+private struct PhoneAppIcon: View {
+    let app: PhoneApp
+
+    var body: some View {
+        if let image = NSImage(contentsOf: PhoneStreams.iconURL(for: app)) {
+            Image(nsImage: image)
+                .resizable()
+                .interpolation(.high)
+                .scaledToFit()
+        } else {
+            RoundedRectangle(cornerRadius: 9)
+                .fill(Color.white.opacity(0.1))
+                .overlay(Image(systemName: "app.dashed").foregroundStyle(.secondary))
+        }
     }
 }

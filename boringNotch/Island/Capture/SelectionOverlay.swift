@@ -85,14 +85,13 @@ final class SelectionOverlay {
         return CGPoint(x: screen.frame.minX, y: primaryHeight - screen.frame.maxY)
     }
 
-    /// Normal app windows, front to back, in Quartz coordinates.
+    /// Normal app windows, front to back, in Quartz coordinates. Layer 0 leaves out this app's
+    /// island and overlay but keeps its ordinary windows, such as phone streams.
     private static func visibleWindows() -> [(id: CGWindowID, bounds: CGRect)] {
         let options: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
         guard let list = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] else { return [] }
-        let ownPID = ProcessInfo.processInfo.processIdentifier
         return list.compactMap { info in
             guard (info[kCGWindowLayer as String] as? Int) == 0,
-                  (info[kCGWindowOwnerPID as String] as? pid_t) != ownPID,
                   (info[kCGWindowAlpha as String] as? Double ?? 1) > 0.05,
                   let id = info[kCGWindowNumber as String] as? CGWindowID,
                   let boundsInfo = info[kCGWindowBounds as String] as? [String: Any],

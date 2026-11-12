@@ -33,6 +33,8 @@ struct PhoneStatus: Codable, Equatable {
     var cellSignal: Int?
     var unread: Int?
     var pairingQr: String?
+    /// This Mac's address on the phone's network; the phone's video stream is sent there.
+    var pcAddress: String?
     var notifications: [PhoneNotification] = []
 }
 
@@ -130,9 +132,12 @@ final class PhoneLink: ObservableObject {
     private var subscriberGeneration = 0
     private let monitor = NWPathMonitor()
     private var started = false
+    /// Serial, so messages reach the phone in the order they were sent (pointer moves, then clicks).
+    private let sendQueue = DispatchQueue(label: "island.phone.send")
 
     /// Short on purpose: Unix socket paths are limited to 104 bytes, and the sandbox container is long.
     private let socketDirectory = URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("sc", isDirectory: true)
+    var controlSocketPath: String { controlSocket }
     private var controlSocket: String { socketDirectory.appendingPathComponent("control.sock").path }
 
     private var stateDirectory: URL {
@@ -217,6 +222,8 @@ final class PhoneLink: ObservableObject {
         environment["SMARTCONNECT_SOCKET_DIR"] = socketDirectory.path
         // The daemon exits by itself when this app is gone, even after a crash.
         environment["SMARTCONNECT_PARENT_PID"] = String(ProcessInfo.processInfo.processIdentifier)
+        // More detail about notifications, so the diagnosis shows what arrived and what was dropped.
+        environment["RUST_LOG"] = "info,smartconnect::notifications_macos=debug"
         environment["SMARTCONNECT_CLIPBOARD_SEND"] = Defaults[.islandPhoneClipboardSend] ? "1" : "0"
         environment["SMARTCONNECT_CLIPBOARD_RECEIVE"] = Defaults[.islandPhoneClipboardReceive] ? "1" : "0"
         process.environment = environment
@@ -240,6 +247,7 @@ final class PhoneLink: ObservableObject {
             daemonRunning = true
             message = nil
             startSubscriber()
+            PhoneNotifier.shared.start(socketPath: socketDirectory.appendingPathComponent("notifications.sock").path)
         } catch {
             message = "Der Handy-Dienst ließ sich nicht starten: \(error.localizedDescription)"
         }
@@ -247,6 +255,8 @@ final class PhoneLink: ObservableObject {
 
     private func stopDaemon() {
         subscriberGeneration += 1
+        PhoneNotifier.shared.stop()
+        PhoneStreams.shared.closeAll()
         process?.terminate()
         process = nil
         daemonRunning = false
@@ -317,6 +327,19 @@ final class PhoneLink: ObservableObject {
         return String(decoding: data, as: UTF8.self)
     }
 
+    /// Forwards one message to the phone on the given protocol service, without waiting for an answer.
+    func send(service: Int, data: [String: Any]) {
+        let line = json(["cmd": "send", "service": service, "data": data])
+        let path = controlSocket
+        sendQueue.async {
+            guard let fd = LineSocket.open(path) else { return }
+            defer { close(fd) }
+            _ = LineSocket.write(line, to: fd)
+            // Wait for the daemon's one-line reply, so the message is accepted before closing.
+            LineSocket.readLines(from: fd) { _ in false }
+        }
+    }
+
     // MARK: - Diagnosis
 
     /// The tail of the service log, stripped of anything secret, for pasting into a bug report.
@@ -358,7 +381,11 @@ final class PhoneLink: ObservableObject {
     }
 
     func reply(to notification: PhoneNotification, text: String) async -> Bool {
-        let answer = await request(json(["cmd": "reply", "key": notification.key, "text": text]))
+        await reply(key: notification.key, text: text)
+    }
+
+    func reply(key: String, text: String) async -> Bool {
+        let answer = await request(json(["cmd": "reply", "key": key, "text": text]))
         let ok = answer?["ok"] as? Bool == true
         if !ok { message = answer?["message"] as? String ?? "Antwort konnte nicht gesendet werden." }
         return ok

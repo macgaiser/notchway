@@ -45,14 +45,17 @@ enum CaptureEngine {
         }
     }
 
-    /// The whole display without this app's own windows (island, overlay, recording control).
+    /// The whole display without this app's floating helpers (island, selection overlay, recording
+    /// control). Its ordinary windows, such as phone streams and the editor, stay in the picture.
     static func displayFilter(for displayID: CGDirectDisplayID) async throws -> SCContentFilter {
         let content = try await shareableContent()
         guard let display = content.displays.first(where: { $0.displayID == displayID }) else {
             throw CaptureError.displayNotFound
         }
-        let ownApp = content.applications.filter { $0.processID == ProcessInfo.processInfo.processIdentifier }
-        return SCContentFilter(display: display, excludingApplications: ownApp, exceptingWindows: [])
+        let ownPID = ProcessInfo.processInfo.processIdentifier
+        // Ordinary windows sit on layer 0; the helpers float on higher layers.
+        let helpers = content.windows.filter { $0.owningApplication?.processID == ownPID && $0.windowLayer != 0 }
+        return SCContentFilter(display: display, excludingWindows: helpers)
     }
 
     /// `rect` is in points of that display, measured from its top-left corner.
