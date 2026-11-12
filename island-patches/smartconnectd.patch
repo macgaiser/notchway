@@ -1,0 +1,93 @@
+diff --git a/src/clipboard.rs b/src/clipboard.rs
+index 720c4c5..7a7c0a5 100644
+--- a/src/clipboard.rs
++++ b/src/clipboard.rs
+@@ -45,6 +45,12 @@ pub struct Session {
+     negotiated: bool,
+ }
+ 
++/// An embedding app can switch each direction off: `SMARTCONNECT_CLIPBOARD_SEND=0` (this computer
++/// to the phone) and `SMARTCONNECT_CLIPBOARD_RECEIVE=0` (phone to this computer).
++fn direction_enabled(var: &str) -> bool {
++    std::env::var(var).map(|v| v != "0").unwrap_or(true)
++}
++
+ impl Session {
+     /// Handles one clipboard message from the phone and returns the reply, if it needs one.
+     pub fn handle(&mut self, data: &Value, local: &LocalClipboard) -> Option<Value> {
+@@ -57,6 +63,7 @@ impl Session {
+             }
+             CLIP_UPDATE_NOTIFY => {
+                 match data.pointer("/data/text").and_then(Value::as_str) {
++                    Some(_) if !direction_enabled("SMARTCONNECT_CLIPBOARD_RECEIVE") => {}
+                     Some(text) => local.set_from_phone(text),
+                     // An image or file clip. The bytes travel over "fex" (service 2), which this
+                     // daemon does not speak yet, so we recognise the clip and log it but do NOT send
+@@ -77,7 +84,7 @@ impl Session {
+ 
+     /// The UPDATE_NOTIFY that carries a Linux copy to the phone, once the phone is listening.
+     pub fn outgoing(&self, clip: &LocalClip) -> Option<Value> {
+-        self.negotiated.then(|| {
++        (self.negotiated && direction_enabled("SMARTCONNECT_CLIPBOARD_SEND")).then(|| {
+             let text: String = clip.text.chars().take(MAX_TEXT_CHARS).collect();
+             json!({ "msgId": CLIP_UPDATE_NOTIFY, "data": { "clipId": clip.id, "text": text } })
+         })
+diff --git a/src/main.rs b/src/main.rs
+index 8d4ab8d..641be59 100644
+--- a/src/main.rs
++++ b/src/main.rs
+@@ -96,6 +96,20 @@ async fn main() -> Result<()> {
+         return smartconnect::control::request(cmd).await;
+     }
+ 
++    // An embedding app names itself here. When it goes away (quit or crash), stop too, so the
++    // network port never stays open without the app that controls it.
++    if let Some(parent) = std::env::var("SMARTCONNECT_PARENT_PID").ok().and_then(|p| p.parse::<i32>().ok()) {
++        tokio::spawn(async move {
++            loop {
++                tokio::time::sleep(std::time::Duration::from_secs(2)).await;
++                if unsafe { libc::getppid() } != parent {
++                    tracing::warn!("parent process is gone; shutting down");
++                    std::process::exit(0);
++                }
++            }
++        });
++    }
++
+     if args.session_log {
+         smartconnect::server::enable_session_logs();
+     }
+diff --git a/src/platform.rs b/src/platform.rs
+index 8213794..b8ce252 100644
+--- a/src/platform.rs
++++ b/src/platform.rs
+@@ -41,8 +41,19 @@ pub fn cache_dir() -> PathBuf {
+         .join("smartconnect-linux")
+ }
+ 
++/// Embedding apps (Causeway Notch) run sandboxed, where the default locations are too long for a
++/// Unix socket path (104 bytes). They name a short directory here for both sockets.
++fn socket_dir_override() -> Option<PathBuf> {
++    let dir = std::env::var_os("SMARTCONNECT_SOCKET_DIR").filter(|d| !d.is_empty()).map(PathBuf::from)?;
++    let _ = std::fs::create_dir_all(&dir);
++    Some(dir)
++}
++
+ #[cfg(target_os = "macos")]
+ pub fn runtime_dir() -> PathBuf {
++    if let Some(dir) = socket_dir_override() {
++        return dir;
++    }
+     // `$TMPDIR` is already private to the user on macOS. Keep our own subdirectory so a stale
+     // socket from a crashed daemon is easy to identify and remove.
+     let base = std::env::var_os("TMPDIR").map(PathBuf::from).unwrap_or_else(std::env::temp_dir);
+@@ -70,6 +81,9 @@ pub fn log_dir() -> PathBuf {
+ pub fn control_socket() -> PathBuf {
+     #[cfg(target_os = "macos")]
+     {
++        if let Some(dir) = socket_dir_override() {
++            return dir.join("control.sock");
++        }
+         state_dir().join("control.sock")
+     }
+     #[cfg(target_os = "linux")]

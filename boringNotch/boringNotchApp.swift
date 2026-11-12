@@ -280,6 +280,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        ClipboardHistory.shared.start()
+        PhoneLink.shared.start()
+        SiteIconLoader.preload((Defaults[.islandQuickLaunch] + [Defaults[.islandMusicLauncher]].compactMap { $0 }).filter(\.isWeb).map(\.target))
 
         NotificationCenter.default.addObserver(
             self,

@@ -5,51 +5,51 @@
 //  Created by Hugo Persson on 2024-08-25.
 //
 
+import Defaults
 import SwiftUI
-
-struct TabModel: Identifiable {
-    let id = UUID()
-    let label: String
-    let icon: String
-    let view: NotchViews
-}
-
-let tabs = [
-    TabModel(label: "Home", icon: "house.fill", view: .home),
-    TabModel(label: "Shelf", icon: "tray.fill", view: .shelf)
-]
 
 struct TabSelectionView: View {
     @ObservedObject var coordinator = BoringViewCoordinator.shared
+    @Default(.islandHiddenTabs) private var hiddenTabs
+    @Default(.boringShelf) private var shelfEnabled
     @Namespace var animation
-    var body: some View {
-        HStack(spacing: 0) {
-            ForEach(tabs) { tab in
-                    TabButton(label: tab.label, icon: tab.icon, selected: coordinator.currentView == tab.view) {
-                        withAnimation(.smooth) {
-                            coordinator.currentView = tab.view
-                        }
-                    }
-                    .frame(height: 26)
-                    .foregroundStyle(tab.view == coordinator.currentView ? .white : .gray)
-                    .background {
-                        if tab.view == coordinator.currentView {
-                            Capsule()
-                                .fill(coordinator.currentView == tab.view ? Color(nsColor: .secondarySystemFill) : Color.clear)
-                                .matchedGeometryEffect(id: "capsule", in: animation)
-                        } else {
-                            Capsule()
-                                .fill(coordinator.currentView == tab.view ? Color(nsColor: .secondarySystemFill) : Color.clear)
-                                .matchedGeometryEffect(id: "capsule", in: animation)
-                                .hidden()
-                        }
-                    }
-            }
-        }
-        .clipShape(Capsule())
-    }
-}
 
-#Preview {
-    BoringHeader().environmentObject(BoringViewModel())
+    /// The header has room on both sides of the notch; tabs fill the left side first.
+    enum Part {
+        case leading, trailing
+    }
+
+    var part: Part = .leading
+    static let leadingCapacity = 5
+
+    private var tabs: [NotchViews] {
+        let all = NotchViews.allCases.filter { $0.isVisible(hidden: hiddenTabs, shelfEnabled: shelfEnabled) }
+        guard all.count > 1 else { return [] }
+        return part == .leading ? Array(all.prefix(Self.leadingCapacity)) : Array(all.dropFirst(Self.leadingCapacity))
+    }
+
+    var body: some View {
+        if !tabs.isEmpty {
+            HStack(spacing: 0) {
+                ForEach(tabs, id: \.self) { tab in
+                    TabButton(label: tab.title, icon: tab.icon, selected: coordinator.currentView == tab) {
+                        withAnimation(IslandMotion.tab) {
+                            coordinator.currentView = tab
+                        }
+                    }
+                    .help(tab.title)
+                    .frame(height: 26)
+                    .foregroundStyle(tab == coordinator.currentView ? .white : .gray)
+                    .background {
+                        if tab == coordinator.currentView {
+                            Capsule()
+                                .fill(Color(nsColor: .secondarySystemFill))
+                                .matchedGeometryEffect(id: "capsule", in: animation)
+                        }
+                    }
+                }
+            }
+            .clipShape(Capsule())
+        }
+    }
 }

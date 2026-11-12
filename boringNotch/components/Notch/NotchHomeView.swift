@@ -125,6 +125,15 @@ struct MusicControlsView: View {
             slotToolbar
         }
         .buttonStyle(PlainButtonStyle())
+        .overlay(alignment: .topTrailing) {
+            // Only while there is no track to show; otherwise it would sit on top of the title.
+            if !musicManager.isPlaying && musicManager.isPlayerIdle && (musicManager.songTitle.isEmpty || musicManager.songTitle == "I'm Handsome") {
+                MusicLauncherButton()
+                    .padding(.top, 8)
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
+            }
+        }
+        .animation(IslandMotion.tab, value: musicManager.isPlayerIdle)
     }
 
     private var songInfoAndSlider: some View {

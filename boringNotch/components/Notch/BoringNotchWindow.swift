@@ -40,9 +40,7 @@ class BoringNotchWindow: NSPanel {
         hasShadow = false
     }
     
-    override var canBecomeKey: Bool {
-        false
-    }
+    override var canBecomeKey: Bool { IslandFocus.allowsKey }
     
     override var canBecomeMain: Bool {
         false

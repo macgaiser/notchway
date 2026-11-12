@@ -48,6 +48,9 @@ struct SettingsView: View {
 //                NavigationLink(value: "Downloads") {
 //                    Label("Downloads", systemImage: "square.and.arrow.down")
 //                }
+                NavigationLink(value: "Island") {
+                    Label("Ansichten", systemImage: "rectangle.3.group")
+                }
                 NavigationLink(value: "Shelf") {
                     Label("Shelf", systemImage: "books.vertical")
                 }
@@ -83,6 +86,8 @@ struct SettingsView: View {
                     HUD()
                 case "Battery":
                     Charge()
+                case "Island":
+                    IslandSettings()
                 case "Shelf":
                     Shelf()
                 case "Shortcuts":
@@ -327,7 +332,6 @@ struct GeneralSettings: View {
             Defaults.Toggle(key: .enableHaptics) {
                     Text("Enable haptic feedback")
             }
-            Toggle("Remember last tab", isOn: $coordinator.openLastTabByDefault)
             if openNotchOnHover {
                 Slider(value: $minimumHoverDuration, in: 0...1, step: 0.1) {
                     HStack {
@@ -929,9 +933,6 @@ struct Shelf: View {
             Section {
                 Defaults.Toggle(key: .boringShelf) {
                     Text("Enable shelf")
-                }
-                Defaults.Toggle(key: .openShelfByDefault) {
-                    Text("Open shelf by default if items are present")
                 }
                 Defaults.Toggle(key: .expandedDragDetection) {
                     Text("Expanded drag detection area")
