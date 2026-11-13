@@ -6,7 +6,15 @@
 - Startseite / Project page: <https://macgaiser.github.io/notchway/> · [Datenschutz / Privacy](docs/privacy.md)
 - Bauen / Build: `./island-build.sh --run` (Xcode, Rust). Der Handy-Daemon wird aus [jitunayak/smart-connect-mac](https://github.com/jitunayak/smart-connect-mac) gebaut (Pfad über `ISLAND_DAEMON_SRC`), unsere Änderungen liegen in `island-patches/smartconnectd.patch`. / The phone daemon is built from that repository (path via `ISLAND_DAEMON_SRC`); our changes are in `island-patches/smartconnectd.patch`.
 
-**Danksagung / Credits:** [boring.notch](https://github.com/TheBoredTeam/boring.notch) von TheBoredTeam (GPL-3.0) · [smart-connect-mac](https://github.com/jitunayak/smart-connect-mac) und [smartconnect-linux](https://github.com/rudrahnpatel/smartconnect-linux) (MIT) · weitere Bibliotheken siehe [THIRD_PARTY_LICENSES](THIRD_PARTY_LICENSES).
+## Danksagung / Credits
+
+Notchway steht auf den Schultern anderer. Danke an / Thanks to:
+
+- **[boring.notch](https://github.com/TheBoredTeam/boring.notch)** (TheBoredTeam und alle Mitwirkenden, GPL-3.0): die Basis der gesamten App / the base of the whole app. Dazu gehören dessen [MacroVisionKit](https://github.com/TheBoredTeam/MacroVisionKit) und [MediaRemoteAdapter](https://github.com/ungive/mediaremote-adapter) (Jonas van den Berg).
+- **[smart-connect-mac](https://github.com/jitunayak/smart-connect-mac)** (jitunayak) und **[smartconnect-linux](https://github.com/rudrahnpatel/smartconnect-linux)** (Rudra Patel und Mitwirkende, MIT): Daemon und Protokollarbeit für die Handy-Anbindung / daemon and protocol work for the phone link.
+- **Ideen und Code-Vorlagen / ideas and code:** [NotchDrop](https://github.com/Lakr233/NotchDrop) und [SkyLightWindow](https://github.com/Lakr233/SkyLightWindow) (Lakr Aream), [DynamicNotchKit](https://github.com/MrKai77/DynamicNotchKit) (Kai Azim), [Calendr](https://github.com/pakerwreah/Calendr) (Carlos César Neves Enumo).
+- **Bibliotheken / libraries:** [Defaults](https://github.com/sindresorhus/Defaults), [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) und [LaunchAtLogin-Modern](https://github.com/sindresorhus/LaunchAtLogin-Modern) (Sindre Sorhus), [Sparkle](https://github.com/sparkle-project/Sparkle), [Lottie](https://github.com/airbnb/lottie-spm) (Airbnb), [Pow](https://github.com/EmergeTools/Pow) (Emerge Tools), [AsyncXPCConnection](https://github.com/ChimeHQ/AsyncXPCConnection) (ChimeHQ), [SwiftUI Introspect](https://github.com/siteline/swiftui-introspect), [swift-collections](https://github.com/apple/swift-collections) und [swift-syntax](https://github.com/swiftlang/swift-syntax) (Apple).
+- Lizenztexte / license texts: [THIRD_PARTY_LICENSES](THIRD_PARTY_LICENSES).
 
 **Hinweis / Disclaimer:** Inoffizielles Projekt, nicht verbunden mit oder unterstützt von Apple, Google, Motorola oder Lenovo. Namen und Marken gehören ihren Inhabern. / Unofficial project, not affiliated with or endorsed by Apple, Google, Motorola or Lenovo. All names and trademarks belong to their owners.
 
