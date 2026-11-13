@@ -4,6 +4,7 @@
 **English:** Notchway is a fork of boring.notch (GPL-3.0) with extra views (quick launch, notes, tasks via Google Tasks, pomodoro, clipboard, screen capture) and a link to Motorola Android phones (notifications, clipboard, files, mirroring, app streaming). German is the default language, English is selectable.
 
 - Startseite / Project page: <https://macgaiser.github.io/notchway/> · [Datenschutz / Privacy](docs/privacy.md)
+- Google-Anmeldung beim Selbstbauen / Google sign-in when building yourself: Der Client von Notchway steckt nur in den fertigen Releases, nicht im Quellcode. Selbst gebaute Versionen tragen unter Einstellungen › Google-Konto › „Eigenen Google-Client verwenden“ einen eigenen Desktop-Client ein (Google Cloud Console, nur Tasks-API). / Notchway's client is only compiled into official releases, not into the source. Self-built versions enter their own desktop client under Settings › Google account › “Use your own Google client”.
 - Bauen / Build: `./island-build.sh --run` (Xcode, Rust). Der Handy-Daemon wird aus [jitunayak/smart-connect-mac](https://github.com/jitunayak/smart-connect-mac) gebaut (Pfad über `ISLAND_DAEMON_SRC`), unsere Änderungen liegen in `island-patches/smartconnectd.patch`. / The phone daemon is built from that repository (path via `ISLAND_DAEMON_SRC`); our changes are in `island-patches/smartconnectd.patch`.
 
 ## Danksagung / Credits

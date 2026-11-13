@@ -11,6 +11,23 @@ if [[ -z "$TEAM" ]]; then
   exit 1
 fi
 
+# Notchway's Google client is not in the repository. If its JSON (downloaded from the Cloud Console)
+# is available, it is compiled in for this build and the source file is put back afterwards.
+GOOGLE_CLIENT_JSON="${ISLAND_GOOGLE_CLIENT:-../extern/notchway-google-client.json}"
+BUILTIN="boringNotch/Island/GoogleClientBuiltIn.swift"
+if [[ -f "$GOOGLE_CLIENT_JSON" ]]; then
+  cp "$BUILTIN" "$BUILTIN.orig"
+  trap 'mv -f "$BUILTIN.orig" "$BUILTIN"' EXIT
+  python3 - "$GOOGLE_CLIENT_JSON" "$BUILTIN" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1]))
+d = d.get("installed") or d.get("web") or d
+open(sys.argv[2], "w").write('enum GoogleClientBuiltIn {\n    static let id = "%s"\n    static let secret = "%s"\n}\n' % (d["client_id"], d["client_secret"]))
+PY
+else
+  echo "Hinweis: kein Google-Client gefunden, die App nutzt nur einen selbst eingetragenen." >&2
+fi
+
 xcodebuild -project boringNotch.xcodeproj -scheme boringNotch -configuration Debug \
   -derivedDataPath build -skipMacroValidation -skipPackagePluginValidation -allowProvisioningUpdates \
   DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic \

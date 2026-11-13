@@ -2,7 +2,7 @@
 //  GoogleAuth.swift
 //  boringNotch
 //
-//  Sign-in with the user's own Google OAuth client (desktop type, PKCE, loopback redirect).
+//  Sign-in with Notchway's Google OAuth client or the user's own (desktop type, PKCE, loopback redirect).
 //  Only the Google Tasks scope is requested.
 //
 
@@ -85,14 +85,15 @@ final class GoogleAuth: ObservableObject {
     }
 
     var hasClientSecret: Bool { IslandKeychain.read("clientSecret") != nil }
+    var isConfigured: Bool { GoogleClient.isConfigured }
 
     // MARK: - Connect / disconnect
 
     func connect(clientSecret: String) async {
-        let clientID = Defaults[.islandGoogleClientID].trimmingCharacters(in: .whitespacesAndNewlines)
         let typedSecret = clientSecret.trimmingCharacters(in: .whitespacesAndNewlines)
         if !typedSecret.isEmpty { IslandKeychain.write(typedSecret, for: "clientSecret") }
-        guard !clientID.isEmpty, let secret = IslandKeychain.read("clientSecret") else {
+        let clientID = GoogleClient.id
+        guard let secret = GoogleClient.secret else {
             message = GoogleAuthError.notConfigured.errorDescription
             return
         }
@@ -172,12 +173,12 @@ final class GoogleAuth: ObservableObject {
             isConnected = false
             throw GoogleAuthError.notConnected
         }
-        guard let secret = IslandKeychain.read("clientSecret") else { throw GoogleAuthError.notConfigured }
+        guard let secret = GoogleClient.secret else { throw GoogleAuthError.notConfigured }
         do {
             let token = try await requestToken([
                 "grant_type": "refresh_token",
                 "refresh_token": refresh,
-                "client_id": Defaults[.islandGoogleClientID],
+                "client_id": GoogleClient.id,
                 "client_secret": secret,
             ])
             store(token)
@@ -317,7 +318,7 @@ final class LoopbackReceiver: @unchecked Sendable {
             let text = answer["code"] != nil
                 ? String(localized: "Anmeldung abgeschlossen. Du kannst dieses Fenster schließen.")
                 : String(localized: "Die Anmeldung wurde nicht abgeschlossen.")
-            let body = "<!doctype html><meta charset=\"utf-8\"><title>Island</title><body style=\"font:16px -apple-system;padding:3em;text-align:center\">\(text)</body>"
+            let body = "<!doctype html><meta charset=\"utf-8\"><title>Notchway</title><body style=\"font:16px -apple-system;padding:3em;text-align:center\">\(text)</body>"
             let response = "HTTP/1.1 \(isRedirect ? "200 OK" : "404 Not Found")\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: \(body.utf8.count)\r\nConnection: close\r\n\r\n\(body)"
             connection.send(content: Data(response.utf8), completion: .contentProcessed { _ in
                 connection.cancel()

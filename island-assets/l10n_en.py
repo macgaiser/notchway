@@ -1,5 +1,8 @@
 # German source text -> English. Interpolations are written as %@; l10n_merge adds the %lld form.
 EN = {
+"Eigenen Google-Client verwenden": "Use your own Google client",
+"Optional: Client-ID und Client-Schlüssel aus deinem eigenen Projekt in der Google Cloud Console (Typ „Desktop-App“). Leer lassen, um den Client von Notchway zu nutzen.": "Optional: client ID and client secret from your own project in the Google Cloud Console (type “Desktop app”). Leave empty to use Notchway's client.",
+"Für die Ansichten „Aufgaben“ und „Notizen“. Die App fragt nur den Zugriff auf Google Tasks an. Der Zugang liegt im macOS-Schlüsselbund und lässt sich hier oder in deinem Google-Konto unter „Sicherheit“ widerrufen.": "For the “Tasks” and “Notes” views. The app only asks for access to Google Tasks. The access is kept in the macOS keychain and can be revoked here or in your Google account under “Security”.",
 # Capture
 "Stift": "Pen", "Textmarker": "Highlighter", "Pfeil": "Arrow", "Rechteck": "Rectangle", "Ellipse": "Ellipse",
 "Text": "Text", "Symbol": "Symbol",

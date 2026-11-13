@@ -440,8 +440,6 @@ struct GoogleAccountSettings: View {
     var body: some View {
         Form {
             Section {
-                TextField("Client-ID", text: $googleClientID, prompt: Text("…apps.googleusercontent.com"))
-                SecureField(String(localized: "Client-Schlüssel"), text: $googleClientSecret, prompt: Text(google.hasClientSecret ? String(localized: "Gespeichert") : "GOCSPX-…"))
                 HStack {
                     if google.isConnected {
                         Label(String(localized: "Verbunden"), systemImage: "checkmark.circle.fill")
@@ -454,7 +452,7 @@ struct GoogleAccountSettings: View {
                             googleClientSecret = ""
                             Task { await google.connect(clientSecret: secret) }
                         }
-                        .disabled(google.isWorking || googleClientID.isEmpty || (googleClientSecret.isEmpty && !google.hasClientSecret))
+                        .disabled(google.isWorking || !(GoogleClient.isConfigured || (!googleClientID.isEmpty && !googleClientSecret.isEmpty)))
                         if google.isWorking {
                             Button(String(localized: "Abbrechen")) { google.cancelConnect() }
                         }
@@ -468,7 +466,17 @@ struct GoogleAccountSettings: View {
             } header: {
                 Text("Google-Konto")
             } footer: {
-                Text(String(localized: "Für die Ansichten „Aufgaben“ und „Notizen“. Client-ID und Client-Schlüssel stammen aus deinem eigenen Projekt in der Google Cloud Console (Typ „Desktop-App“). Die App fragt nur den Zugriff auf Google Tasks an. Schlüssel und Zugang liegen im macOS-Schlüsselbund."))
+                Text(String(localized: "Für die Ansichten „Aufgaben“ und „Notizen“. Die App fragt nur den Zugriff auf Google Tasks an. Der Zugang liegt im macOS-Schlüsselbund und lässt sich hier oder in deinem Google-Konto unter „Sicherheit“ widerrufen."))
+            }
+
+            Section {
+                DisclosureGroup(String(localized: "Eigenen Google-Client verwenden")) {
+                    TextField("Client-ID", text: $googleClientID, prompt: Text("…apps.googleusercontent.com"))
+                    SecureField(String(localized: "Client-Schlüssel"), text: $googleClientSecret, prompt: Text(google.hasClientSecret ? String(localized: "Gespeichert") : "GOCSPX-…"))
+                    Text(String(localized: "Optional: Client-ID und Client-Schlüssel aus deinem eigenen Projekt in der Google Cloud Console (Typ „Desktop-App“). Leer lassen, um den Client von Notchway zu nutzen."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .navigationTitle("Google-Konto")

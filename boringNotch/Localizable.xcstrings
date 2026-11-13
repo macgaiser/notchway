@@ -9610,6 +9610,22 @@
         }
       }
     },
+    "Eigenen Google-Client verwenden": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eigenen Google-Client verwenden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use your own Google client"
+          }
+        }
+      }
+    },
     "Ein anderes Fenster hat den Video-Encoder übernommen.": {
       "localizations": {
         "de": {
@@ -11656,6 +11672,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "For the “Tasks” and “Notes” views. Client ID and client secret come from your own project in the Google Cloud Console (type “Desktop app”). The app only asks for access to Google Tasks. Secret and access are kept in the macOS keychain."
+          }
+        }
+      }
+    },
+    "Für die Ansichten „Aufgaben“ und „Notizen“. Die App fragt nur den Zugriff auf Google Tasks an. Der Zugang liegt im macOS-Schlüsselbund und lässt sich hier oder in deinem Google-Konto unter „Sicherheit“ widerrufen.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Für die Ansichten „Aufgaben“ und „Notizen“. Die App fragt nur den Zugriff auf Google Tasks an. Der Zugang liegt im macOS-Schlüsselbund und lässt sich hier oder in deinem Google-Konto unter „Sicherheit“ widerrufen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "For the “Tasks” and “Notes” views. The app only asks for access to Google Tasks. The access is kept in the macOS keychain and can be revoked here or in your Google account under “Security”."
           }
         }
       }
@@ -19132,6 +19164,22 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "Option key behaviour"
+          }
+        }
+      }
+    },
+    "Optional: Client-ID und Client-Schlüssel aus deinem eigenen Projekt in der Google Cloud Console (Typ „Desktop-App“). Leer lassen, um den Client von Notchway zu nutzen.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Optional: Client-ID und Client-Schlüssel aus deinem eigenen Projekt in der Google Cloud Console (Typ „Desktop-App“). Leer lassen, um den Client von Notchway zu nutzen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Optional: client ID and client secret from your own project in the Google Cloud Console (type “Desktop app”). Leave empty to use Notchway's client."
           }
         }
       }
