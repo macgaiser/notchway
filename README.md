@@ -1,3 +1,19 @@
+# Notchway
+
+**Deutsch:** Notchway ist ein Fork von [boring.notch](https://github.com/TheBoredTeam/boring.notch) (GPL-3.0) mit zusätzlichen Ansichten (Schnellstart, Notizen, Aufgaben mit Google Tasks, Pomodoro, Zwischenablage, Bildschirmaufnahme) und einer Anbindung an Motorola-Android-Handys (Benachrichtigungen, Zwischenablage, Dateien, Spiegelung, App-Streaming). Deutsch ist Standardsprache, Englisch wählbar.
+**English:** Notchway is a fork of boring.notch (GPL-3.0) with extra views (quick launch, notes, tasks via Google Tasks, pomodoro, clipboard, screen capture) and a link to Motorola Android phones (notifications, clipboard, files, mirroring, app streaming). German is the default language, English is selectable.
+
+- Startseite / Project page: <https://macgaiser.github.io/notchway/> · [Datenschutz / Privacy](docs/privacy.md)
+- Bauen / Build: `./island-build.sh --run` (Xcode, Rust). Der Handy-Daemon wird aus [jitunayak/smart-connect-mac](https://github.com/jitunayak/smart-connect-mac) gebaut (Pfad über `ISLAND_DAEMON_SRC`), unsere Änderungen liegen in `island-patches/smartconnectd.patch`. / The phone daemon is built from that repository (path via `ISLAND_DAEMON_SRC`); our changes are in `island-patches/smartconnectd.patch`.
+
+**Danksagung / Credits:** [boring.notch](https://github.com/TheBoredTeam/boring.notch) von TheBoredTeam (GPL-3.0) · [smart-connect-mac](https://github.com/jitunayak/smart-connect-mac) und [smartconnect-linux](https://github.com/rudrahnpatel/smartconnect-linux) (MIT) · weitere Bibliotheken siehe [THIRD_PARTY_LICENSES](THIRD_PARTY_LICENSES).
+
+**Hinweis / Disclaimer:** Inoffizielles Projekt, nicht verbunden mit oder unterstützt von Apple, Google, Motorola oder Lenovo. Namen und Marken gehören ihren Inhabern. / Unofficial project, not affiliated with or endorsed by Apple, Google, Motorola or Lenovo. All names and trademarks belong to their owners.
+
+---
+
+*Folgt: die ursprüngliche README von boring.notch / Below: the original boring.notch README.*
+
 <h1 align="center">
   <br>
   <a href="http://theboring.name"><img src="https://framerusercontent.com/images/RFK4vs0kn8pRMuOO58JeyoemXA.png?scale-down-to=256" alt="Boring Notch" width="150"></a>
