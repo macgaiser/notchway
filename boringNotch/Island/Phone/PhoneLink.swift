@@ -35,12 +35,15 @@ struct PhoneStatus: Codable, Equatable {
     var pairingQr: String?
     /// This Mac's address on the phone's network; the phone's video stream is sent there.
     var pcAddress: String?
+    /// The phone's address in this session; file transfers are fetched from there.
+    var phoneAddress: String?
     var notifications: [PhoneNotification] = []
 }
 
 extension Defaults.Keys {
     /// Network id → label shown in settings. Only on these networks does the phone service run.
     static let islandTrustedNetworks = Key<[String: String]>("islandTrustedNetworks", default: [:])
+    static let islandShareTargetMigrated = Key<Bool>("islandShareTargetMigrated", default: false)
     static let islandPhoneClipboardSend = Key<Bool>("islandPhoneClipboardSend", default: true)
     static let islandPhoneClipboardReceive = Key<Bool>("islandPhoneClipboardReceive", default: true)
 }
@@ -138,6 +141,8 @@ final class PhoneLink: ObservableObject {
     /// Short on purpose: Unix socket paths are limited to 104 bytes, and the sandbox container is long.
     private let socketDirectory = URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("sc", isDirectory: true)
     var controlSocketPath: String { controlSocket }
+    /// Log of the file transfers, next to the service log.
+    var fileLogURL: URL { stateDirectory.appendingPathComponent("files.log") }
     private var controlSocket: String { socketDirectory.appendingPathComponent("control.sock").path }
 
     private var stateDirectory: URL {
@@ -248,6 +253,7 @@ final class PhoneLink: ObservableObject {
             message = nil
             startSubscriber()
             PhoneNotifier.shared.start(socketPath: socketDirectory.appendingPathComponent("notifications.sock").path)
+            PhoneFiles.shared.start()
         } catch {
             message = "Der Handy-Dienst ließ sich nicht starten: \(error.localizedDescription)"
         }
@@ -256,6 +262,7 @@ final class PhoneLink: ObservableObject {
     private func stopDaemon() {
         subscriberGeneration += 1
         PhoneNotifier.shared.stop()
+        PhoneFiles.shared.stop()
         PhoneStreams.shared.closeAll()
         process?.terminate()
         process = nil
@@ -353,7 +360,10 @@ final class PhoneLink: ObservableObject {
             // Keys, tokens and fingerprints are long runs of base64 characters.
             .map { $0.replacingOccurrences(of: "[A-Za-z0-9+/=_-]{32,}", with: "<verborgen>", options: .regularExpression) }
         let header = "daemon=\(daemonRunning) trusted=\(networkTrusted) connected=\(status.connected) paired=\(status.paired) notifications=\(status.notifications.count) unread=\(status.unread ?? -1)"
-        let text = ([header] + lines.suffix(120)).joined(separator: "\n")
+        let transfers = ((try? String(contentsOf: fileLogURL, encoding: .utf8)) ?? "").components(separatedBy: "\n")
+            .map { $0.replacingOccurrences(of: "[A-Za-z0-9+/=_-]{32,}", with: "<verborgen>", options: .regularExpression) }
+            .suffix(60)
+        let text = ([header] + lines.suffix(120) + ["--- Dateiübertragung ---"] + transfers).joined(separator: "\n")
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
         message = "Diagnose kopiert. Füge sie in den Chat ein."

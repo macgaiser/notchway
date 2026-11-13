@@ -13,6 +13,16 @@ import UniformTypeIdentifiers
 struct FileShareView: View {
     @EnvironmentObject private var vm: BoringViewModel
     @StateObject private var quickShare = QuickShareService.shared
+    @ObservedObject private var phoneFiles = PhoneFiles.shared
+    @ObservedObject private var phone = PhoneLink.shared
+
+    private var sendsToPhone: Bool { selectedProvider.id == PhoneFiles.shareProviderID }
+
+    /// The phone goes by its own name, such as "razr 60 ultra".
+    private var targetName: String {
+        guard sendsToPhone else { return selectedProvider.id }
+        return phone.status.model ?? phone.status.name ?? selectedProvider.id
+    }
     @Default(.quickShareProvider) var quickShareProvider: String
 
     @State private var hostView: NSView?
@@ -84,9 +94,20 @@ struct FileShareView: View {
                         .animation(.spring(response: 0.36, dampingFraction: 0.7), value: vm.dropZoneTargeting)
                 }
 
-                Text(selectedProvider.id)
+                Text(targetName)
                     .font(.system(.headline, design: .rounded))
                     .foregroundColor(.white.opacity(0.8))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                // Below the name: a running transfer, or whether the phone can be reached at all.
+                if sendsToPhone {
+                    Text(phoneFiles.activity ?? (phone.status.connected ? "Verbunden" : "Nicht verbunden"))
+                        .font(.caption2)
+                        .foregroundColor(phoneFiles.activity != nil ? .white.opacity(0.8) : phone.status.connected ? .green.opacity(0.8) : .orange.opacity(0.9))
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                        .truncationMode(.middle)
+                }
 
             }
             .padding(18)

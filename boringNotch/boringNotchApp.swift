@@ -282,6 +282,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         ClipboardHistory.shared.start()
         PhoneLink.shared.start()
+        // Once: the share area of the shelf sends to the phone instead of AirDrop.
+        if !Defaults[.islandShareTargetMigrated] {
+            Defaults[.islandShareTargetMigrated] = true
+            Defaults[.quickShareProvider] = PhoneFiles.shareProviderID
+        }
         SiteIconLoader.preload((Defaults[.islandQuickLaunch] + [Defaults[.islandMusicLauncher]].compactMap { $0 }).filter(\.isWeb).map(\.target))
 
         NotificationCenter.default.addObserver(

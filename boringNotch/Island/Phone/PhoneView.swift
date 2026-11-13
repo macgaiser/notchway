@@ -16,6 +16,7 @@ struct PhoneView: View {
     @State private var showingApps = false
     @State private var appSearch = ""
     @ObservedObject private var streams = PhoneStreams.shared
+    @ObservedObject private var files = PhoneFiles.shared
     @Default(.islandPhoneAppsLandscape) private var appsLandscape
     @Default(.islandPhoneFavorites) private var favorites
     /// App being dragged between the grid and the favorites, and where the pointer is.
@@ -182,6 +183,18 @@ struct PhoneView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .labelStyle(.titleAndIcon)
+                .overlay(alignment: .leading) {
+                    // A running transfer takes the place of the status line.
+                    if let activity = files.activity {
+                        Text(activity)
+                            .font(.caption)
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.black)
+                    }
+                }
             } else {
                 Text(link.message ?? "Nicht verbunden")
                     .font(.caption)

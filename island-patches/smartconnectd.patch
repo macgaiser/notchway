@@ -1,3 +1,629 @@
+diff --git a/fex/Cargo.toml b/fex/Cargo.toml
+index 6d4b739..e2298f8 100644
+--- a/fex/Cargo.toml
++++ b/fex/Cargo.toml
+@@ -21,14 +21,13 @@ hex = "0.4"
+ libc = "0.2"
+ # Deflate entries in the transfer zip (the icon archive itself is observed as Store-only).
+ miniz_oxide = "0.8"
++# The throwaway certificate of the sending side.
++rcgen = { version = "0.14", default-features = false, features = ["ring", "pem"] }
+ serde = { version = "1", features = ["derive"] }
+ serde_json = "1"
+ sha2 = "0.11"
+-tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "io-util", "time", "fs"] }
++tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "io-util", "time", "fs", "sync"] }
+ tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12"] }
+ tokio-tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
+ tracing = "0.1"
+ tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+-
+-[dev-dependencies]
+-rcgen = { version = "0.14", default-features = false, features = ["ring", "pem"] }
+diff --git a/fex/src/lib.rs b/fex/src/lib.rs
+index e5a9e90..b8c13ac 100644
+--- a/fex/src/lib.rs
++++ b/fex/src/lib.rs
+@@ -21,6 +21,7 @@ pub mod client;
+ pub mod frame;
+ pub mod http;
+ pub mod icons;
++pub mod server;
+ pub mod tls;
+ pub mod zip;
+ 
+diff --git a/fex/src/main.rs b/fex/src/main.rs
+index 10b13e7..83ce9dc 100644
+--- a/fex/src/main.rs
++++ b/fex/src/main.rs
+@@ -55,6 +55,19 @@ enum Cmd {
+         #[arg(long)]
+         out: PathBuf,
+     },
++    /// Offer files to the phone: starts the transfer server and prints its events as JSON lines.
++    /// The first line (`ready`) has the port, fingerprint and token to advertise on service 2.
++    Send {
++        /// How the sender is named to the phone.
++        #[arg(long, default_value = "")]
++        name: String,
++        #[arg(long, default_value = "")]
++        sender_id: String,
++        /// Seconds to wait for the phone to connect.
++        #[arg(long, default_value_t = 60)]
++        wait: u64,
++        files: Vec<PathBuf>,
++    },
+ }
+ 
+ #[tokio::main]
+@@ -77,9 +90,55 @@ async fn main() -> Result<()> {
+             println!("pulled task with {} file(s), {} bytes; wrote {n} file(s) to {}", entries.len(), pulled.archive.len(), out.display());
+             Ok(())
+         }
++        Cmd::Send { name, sender_id, wait, files } => send(name, sender_id, Duration::from_secs(wait), files).await,
+     }
+ }
+ 
++/// Largest transfer held in memory.
++const MAX_SEND_BYTES: u64 = 2 * 1024 * 1024 * 1024;
++
++async fn send(name: String, sender_id: String, wait: Duration, paths: Vec<PathBuf>) -> Result<()> {
++    use std::io::Write;
++    let mut files: Vec<(String, Vec<u8>)> = Vec::new();
++    let mut total = 0u64;
++    for path in &paths {
++        let base = path.file_name().and_then(|n| n.to_str()).context("a file without a usable name")?.to_owned();
++        total += std::fs::metadata(path).with_context(|| format!("reading {}", path.display()))?.len();
++        if total > MAX_SEND_BYTES {
++            bail!("the files are larger than {} GiB in total", MAX_SEND_BYTES >> 30);
++        }
++        let data = std::fs::read(path).with_context(|| format!("reading {}", path.display()))?;
++        // Two files of the same name must not collide in the archive.
++        let mut unique = base.clone();
++        let mut n = 1;
++        while files.iter().any(|(existing, _)| *existing == unique) {
++            n += 1;
++            unique = match base.rsplit_once('.') {
++                Some((stem, ext)) if !stem.is_empty() => format!("{stem} {n}.{ext}"),
++                _ => format!("{base} {n}"),
++            };
++        }
++        files.push((unique, data));
++    }
++    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Value>();
++    let printer = tokio::spawn(async move {
++        while let Some(event) = rx.recv().await {
++            let mut out = std::io::stdout().lock();
++            let _ = writeln!(out, "{event}");
++            let _ = out.flush();
++        }
++    });
++    let transfer = smartconnect_fex::server::Transfer { files, sender_id, sender_name: name };
++    let result = smartconnect_fex::server::serve(transfer, wait, tx).await;
++    let _ = printer.await;
++    let line = match &result {
++        Ok(()) => json!({"event":"done","ok":true}),
++        Err(e) => json!({"event":"done","ok":false,"message":format!("{e:#}")}),
++    };
++    println!("{line}");
++    result
++}
++
+ fn control_socket() -> PathBuf {
+     #[cfg(target_os = "macos")]
+     {
+diff --git a/fex/src/server.rs b/fex/src/server.rs
+new file mode 100644
+index 0000000..b8bd23c
+--- /dev/null
++++ b/fex/src/server.rs
+@@ -0,0 +1,445 @@
++//! Serves one transfer **to** the phone: the sending side of fex.
++//!
++//! This mirrors what the phone does when it sends (see `docs/protocol/file-exchange.md` §3): zip
++//! the files, start a short-lived HTTPS server with a throwaway certificate, advertise `port`,
++//! `fingerprint` and `token` over the control WebSocket (the caller does that with the values of
++//! the `ready` event), then answer the receiver:
++//!
++//! ```text
++//! phone                                    this server (TLS, self-signed, pinned by the phone)
++//!   GET /websocket (upgrade)          ->
++//!                                     <-   action:Server1001:versionNegotiation?{"version":1}
++//!   ack:Server1001:versionNegotiation ->
++//!                                     <-   action:Server1002:sendRequest?{id, file[], totalSize…}
++//!   ack:Server1002:sendRequest        ->
++//!   GET /download?taskId=<id>         ->   200 application/zip
++//!   action:Client<n>:status?{type:1}  ->
++//!                                     <-   ack:Client<n>:status
++//! ```
++//!
++//! The phone-as-sender flow is observed; that the phone accepts the same flow as a receiver is
++//! inferred from the symmetry of its library, so every request and frame is reported as an event
++//! for the caller to log.
++
++use std::io::Read;
++use std::net::Ipv4Addr;
++use std::sync::Arc;
++use std::sync::atomic::{AtomicBool, Ordering};
++use std::time::Duration;
++
++use anyhow::{Context, Result, bail};
++use futures_util::{SinkExt, StreamExt};
++use serde_json::{Value, json};
++use tokio::io::{AsyncReadExt, AsyncWriteExt};
++use tokio::net::{TcpListener, TcpStream};
++use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
++use tokio_rustls::TlsAcceptor;
++use tokio_rustls::rustls::pki_types::{CertificateDer, PrivatePkcs8KeyDer};
++use tokio_rustls::rustls::{self, ServerConfig};
++use tokio_tungstenite::WebSocketStream;
++use tokio_tungstenite::tungstenite::Message;
++use tokio_tungstenite::tungstenite::handshake::derive_accept_key;
++use tokio_tungstenite::tungstenite::protocol::Role;
++
++use crate::frame::{self, FileEntry, Frame, Kind, Name, SendRequest, Status, VersionNegotiation};
++use crate::{tls, zip};
++
++/// Once the phone has connected, how long the whole transfer may take.
++const TRANSFER_TIMEOUT: Duration = Duration::from_secs(600);
++const MAX_HEAD: usize = 16 * 1024;
++
++/// What to send, and how the sender names itself in `sendRequest`.
++pub struct Transfer {
++    /// File name (no directories) and contents.
++    pub files: Vec<(String, Vec<u8>)>,
++    pub sender_id: String,
++    pub sender_name: String,
++}
++
++struct State {
++    task_id: String,
++    archive: Vec<u8>,
++    files: Vec<(String, Vec<u8>)>,
++    request: String,
++    downloaded: AtomicBool,
++    events: UnboundedSender<Value>,
++}
++
++impl State {
++    fn event(&self, v: Value) {
++        let _ = self.events.send(v);
++    }
++}
++
++fn random_bytes<const N: usize>() -> Result<[u8; N]> {
++    let mut b = [0u8; N];
++    std::fs::File::open("/dev/urandom").and_then(|mut f| f.read_exact(&mut b)).context("reading /dev/urandom")?;
++    Ok(b)
++}
++
++/// The phone picks its own ports in `[50000, 59999]`; so do we.
++async fn bind() -> Result<TcpListener> {
++    for _ in 0..40 {
++        let r = u16::from_le_bytes(random_bytes::<2>()?);
++        let port = 50_000 + r % 10_000;
++        if let Ok(l) = TcpListener::bind((Ipv4Addr::UNSPECIFIED, port)).await {
++            return Ok(l);
++        }
++    }
++    TcpListener::bind((Ipv4Addr::UNSPECIFIED, 0)).await.context("binding a port for the transfer")
++}
++
++fn mime_type(name: &str) -> &'static str {
++    let ext = name.rsplit_once('.').map(|(_, e)| e.to_ascii_lowercase()).unwrap_or_default();
++    match ext.as_str() {
++        "png" => "image/png",
++        "jpg" | "jpeg" => "image/jpeg",
++        "gif" => "image/gif",
++        "heic" => "image/heic",
++        "webp" => "image/webp",
++        "mp4" | "m4v" => "video/mp4",
++        "mov" => "video/quicktime",
++        "mp3" => "audio/mpeg",
++        "m4a" => "audio/mp4",
++        "pdf" => "application/pdf",
++        "txt" => "text/plain",
++        "zip" => "application/zip",
++        _ => "application/octet-stream",
++    }
++}
++
++/// Serves `transfer` until the phone reports the outcome. Emits JSON events: first `ready` (the
++/// values to advertise), then one per request and WebSocket frame. `wait` is how long to wait for
++/// the phone's first connection.
++pub async fn serve(transfer: Transfer, wait: Duration, events: UnboundedSender<Value>) -> Result<()> {
++    if transfer.files.is_empty() {
++        bail!("nothing to send");
++    }
++    let key = rcgen::KeyPair::generate().context("generating the transfer key")?;
++    let cert = rcgen::CertificateParams::new(vec!["Lenovo".to_owned()])
++        .context("certificate parameters")?
++        .self_signed(&key)
++        .context("signing the transfer certificate")?;
++    let der: CertificateDer<'static> = cert.der().clone();
++    let fingerprint = tls::fingerprint(der.as_ref());
++    let mut config = ServerConfig::builder_with_provider(Arc::new(rustls::crypto::ring::default_provider()))
++        .with_safe_default_protocol_versions()
++        .context("selecting TLS versions")?
++        .with_no_client_auth()
++        .with_single_cert(vec![der], PrivatePkcs8KeyDer::from(key.serialize_der()).into())
++        .context("TLS server configuration")?;
++    // The control channel is a WebSocket, which needs HTTP/1.1.
++    config.alpn_protocols = vec![b"http/1.1".to_vec()];
++    let acceptor = TlsAcceptor::from(Arc::new(config));
++
++    let listener = bind().await?;
++    let port = listener.local_addr()?.port();
++    let task_id = hex::encode(random_bytes::<8>()?);
++    let token = hex::encode(random_bytes::<16>()?);
++
++    let entries: Vec<(&str, &[u8])> = transfer.files.iter().map(|(n, d)| (n.as_str(), d.as_slice())).collect();
++    let archive = zip::write_stored(&entries)?;
++    let request = SendRequest {
++        id: task_id.clone(),
++        sender_id: transfer.sender_id.clone(),
++        sender_name: transfer.sender_name.clone(),
++        file_name: transfer.files[0].0.clone(),
++        file_count: transfer.files.len() as u64,
++        mime_type: if transfer.files.len() == 1 { mime_type(&transfer.files[0].0).to_owned() } else { "*/*".to_owned() },
++        total_size: archive.len() as u64,
++        files: transfer
++            .files
++            .iter()
++            .enumerate()
++            .map(|(i, (name, data))| FileEntry {
++                name: name.clone(),
++                mime_type: mime_type(name).to_owned(),
++                size: data.len() as u64,
++                dir: false,
++                index: i as i64,
++            })
++            .collect(),
++    };
++    let (done_tx, mut done_rx) = unbounded_channel::<Result<(), String>>();
++    let state = Arc::new(State {
++        task_id: task_id.clone(),
++        archive,
++        files: transfer.files,
++        request: serde_json::to_string(&request)?,
++        downloaded: AtomicBool::new(false),
++        events,
++    });
++    state.event(json!({"event":"ready","port":port,"fingerprint":fingerprint,"token":token,"taskId":task_id,
++        "fileName":request.file_name,"fileCount":request.file_count,"totalSize":request.total_size}));
++
++    let deadline = tokio::time::sleep(wait);
++    tokio::pin!(deadline);
++    let mut contacted = false;
++    loop {
++        tokio::select! {
++            accepted = listener.accept() => {
++                let (tcp, peer) = accepted.context("accepting a connection")?;
++                if !contacted {
++                    contacted = true;
++                    deadline.as_mut().reset(tokio::time::Instant::now() + TRANSFER_TIMEOUT);
++                }
++                state.event(json!({"event":"connection","peer":peer.ip().to_string()}));
++                let (acceptor, state, done) = (acceptor.clone(), state.clone(), done_tx.clone());
++                tokio::spawn(async move {
++                    if let Err(e) = handle(tcp, acceptor, state.clone(), done).await {
++                        state.event(json!({"event":"error","message":format!("{e:#}")}));
++                    }
++                });
++            }
++            outcome = done_rx.recv() => {
++                return match outcome {
++                    Some(Ok(())) => Ok(()),
++                    Some(Err(reason)) => bail!("the phone reported a failure: {reason}"),
++                    None => bail!("the transfer ended without a result"),
++                };
++            }
++            _ = &mut deadline => {
++                if contacted {
++                    bail!("the transfer did not finish in time");
++                }
++                bail!("the phone did not fetch the offer");
++            }
++        }
++    }
++}
++
++async fn read_head<S: AsyncReadExt + Unpin>(s: &mut S) -> Result<String> {
++    let mut head = Vec::new();
++    let mut b = [0u8; 1];
++    while !head.ends_with(b"\r\n\r\n") {
++        if head.len() > MAX_HEAD {
++            bail!("request head too long");
++        }
++        if s.read(&mut b).await? == 0 {
++            bail!("connection closed before a request");
++        }
++        head.push(b[0]);
++    }
++    Ok(String::from_utf8_lossy(&head).into_owned())
++}
++
++fn header<'a>(head: &'a str, name: &str) -> Option<&'a str> {
++    head.lines().skip(1).find_map(|l| {
++        let (k, v) = l.split_once(':')?;
++        k.trim().eq_ignore_ascii_case(name).then(|| v.trim())
++    })
++}
++
++fn percent_decode(v: &str) -> String {
++    let b = v.as_bytes();
++    let mut out = Vec::with_capacity(b.len());
++    let mut i = 0;
++    while i < b.len() {
++        if b[i] == b'%' && i + 2 < b.len() && v.is_char_boundary(i + 1) && v.is_char_boundary(i + 3) {
++            if let Ok(x) = u8::from_str_radix(&v[i + 1..i + 3], 16) {
++                out.push(x);
++                i += 3;
++                continue;
++            }
++        }
++        out.push(if b[i] == b'+' { b' ' } else { b[i] });
++        i += 1;
++    }
++    String::from_utf8_lossy(&out).into_owned()
++}
++
++fn query_value(target: &str, key: &str) -> Option<String> {
++    let (_, query) = target.split_once('?')?;
++    query.split('&').find_map(|pair| {
++        let (k, v) = pair.split_once('=').unwrap_or((pair, ""));
++        (k == key).then(|| percent_decode(v))
++    })
++}
++
++/// `bytes=<from>-[<to>]` within a body of `len` bytes.
++fn parse_range(value: &str, len: usize) -> Option<(usize, usize)> {
++    let spec = value.trim().strip_prefix("bytes=")?;
++    let (from, to) = spec.split_once('-')?;
++    let from: usize = from.trim().parse().ok()?;
++    let to: usize = if to.trim().is_empty() { len.checked_sub(1)? } else { to.trim().parse().ok()? };
++    (from <= to && to < len).then_some((from, to))
++}
++
++async fn respond<S: AsyncWriteExt + Unpin>(s: &mut S, head: &str, ctype: &str, body: &[u8]) -> Result<bool> {
++    let range = header(head, "range").and_then(|r| parse_range(r, body.len()));
++    let (status, part, extra) = match range {
++        Some((from, to)) => ("206 Partial Content", &body[from..=to], format!("Content-Range: bytes {from}-{to}/{}\r\n", body.len())),
++        None => ("200 OK", body, String::new()),
++    };
++    let resp = format!(
++        "HTTP/1.1 {status}\r\nContent-Type: {ctype}\r\nAccept-Ranges: bytes\r\n{extra}Content-Length: {}\r\nConnection: close\r\n\r\n",
++        part.len()
++    );
++    s.write_all(resp.as_bytes()).await?;
++    s.write_all(part).await?;
++    s.flush().await?;
++    let _ = s.shutdown().await;
++    // Whether the response reached the end of the body.
++    Ok(range.is_none_or(|(_, to)| to + 1 == body.len()))
++}
++
++async fn handle(
++    tcp: TcpStream,
++    acceptor: TlsAcceptor,
++    state: Arc<State>,
++    done: UnboundedSender<Result<(), String>>,
++) -> Result<()> {
++    let _ = tcp.set_nodelay(true);
++    let mut s = acceptor.accept(tcp).await.context("TLS handshake with the phone")?;
++    let head = read_head(&mut s).await?;
++    let target = head.split_whitespace().nth(1).unwrap_or("").to_owned();
++    let path = target.split('?').next().unwrap_or("").to_owned();
++    state.event(json!({"event":"request","path":path,"range":header(&head, "range")}));
++
++    match path.as_str() {
++        "/websocket" => {
++            let key = header(&head, "sec-websocket-key").context("WebSocket upgrade without a key")?;
++            let resp = format!(
++                "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: {}\r\n\r\n",
++                derive_accept_key(key.as_bytes())
++            );
++            s.write_all(resp.as_bytes()).await?;
++            let ws = WebSocketStream::from_raw_socket(s, Role::Server, None).await;
++            control(ws, state, done).await
++        }
++        "/download" => {
++            if query_value(&target, "taskId").as_deref() != Some(state.task_id.as_str()) {
++                let body = b"download -> taskId does not exist!";
++                respond(&mut s, &head, "text/plain; charset=utf-8", body).await?;
++                return Ok(());
++            }
++            if respond(&mut s, &head, "application/zip", &state.archive).await? {
++                state.downloaded.store(true, Ordering::SeqCst);
++                state.event(json!({"event":"downloaded","bytes":state.archive.len()}));
++            }
++            Ok(())
++        }
++        "/downloadFile" => {
++            let index = query_value(&target, "index").and_then(|i| i.parse::<usize>().ok());
++            match index.and_then(|i| state.files.get(i).map(|f| (i, f))) {
++                Some((i, (name, data))) if query_value(&target, "taskId").as_deref() == Some(state.task_id.as_str()) => {
++                    if respond(&mut s, &head, mime_type(name), data).await? {
++                        state.event(json!({"event":"downloadedFile","index":i,"bytes":data.len()}));
++                        if i + 1 == state.files.len() {
++                            state.downloaded.store(true, Ordering::SeqCst);
++                        }
++                    }
++                }
++                _ => {
++                    respond(&mut s, &head, "text/plain; charset=utf-8", b"downloadFile -> does not exist!").await?;
++                }
++            }
++            Ok(())
++        }
++        _ => {
++            s.write_all(b"HTTP/1.1 404 Not Found\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: 19\r\nConnection: close\r\n\r\n404 page not found\n").await?;
++            let _ = s.shutdown().await;
++            Ok(())
++        }
++    }
++}
++
++async fn control<S>(mut ws: WebSocketStream<S>, state: Arc<State>, done: UnboundedSender<Result<(), String>>) -> Result<()>
++where
++    S: AsyncReadExt + AsyncWriteExt + Unpin,
++{
++    let negotiation = serde_json::to_string(&VersionNegotiation { version: frame::VERSION })?;
++    ws.send(Message::text(Frame::action("Server1001", Name::VersionNegotiation, Some(negotiation)).to_string())).await?;
++    let mut offered = false;
++    let mut reported = false;
++    while let Some(message) = ws.next().await {
++        let text = match message {
++            Ok(Message::Text(t)) => t,
++            Ok(Message::Close(_)) | Err(_) => break,
++            Ok(_) => continue,
++        };
++        state.event(json!({"event":"frame","text":text.as_str()}));
++        let Ok(f) = Frame::parse(&text) else { continue };
++        match (f.kind, f.name) {
++            (Kind::Ack, Name::VersionNegotiation) if !offered => {
++                offered = true;
++                ws.send(Message::text(Frame::action("Server1002", Name::SendRequest, Some(state.request.clone())).to_string())).await?;
++            }
++            (Kind::Action, Name::Status) => {
++                ws.send(Message::text(Frame::ack(&f.id, Name::Status, None).to_string())).await?;
++                if let Ok(status) = f.json::<Status>() {
++                    match status.kind {
++                        frame::STATUS_STARTED => {}
++                        frame::STATUS_COMPLETE => {
++                            reported = true;
++                            let _ = done.send(Ok(()));
++                        }
++                        other => {
++                            reported = true;
++                            let reason = if status.reason.is_empty() { format!("status {other}") } else { status.reason };
++                            let _ = done.send(Err(reason));
++                        }
++                    }
++                }
++            }
++            (Kind::Action, name) => {
++                ws.send(Message::text(Frame::ack(&f.id, name, Some("{}".into())).to_string())).await?;
++            }
++            _ => {}
++        }
++    }
++    if !reported {
++        // No status came: the download itself tells whether the files arrived.
++        let _ = done.send(if state.downloaded.load(Ordering::SeqCst) {
++            Ok(())
++        } else {
++            Err("the phone closed the transfer without fetching the files".into())
++        });
++    }
++    Ok(())
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use crate::client::{self, Offer};
++    use std::net::IpAddr;
++
++    #[tokio::test]
++    async fn serves_a_transfer_the_client_can_pull() {
++        let files = vec![("a.txt".to_owned(), b"hello".to_vec()), ("b.png".to_owned(), vec![7u8; 3000])];
++        let (tx, mut rx) = unbounded_channel();
++        let transfer = Transfer { files: files.clone(), sender_id: "<device-id>".into(), sender_name: "Mac".into() };
++        let server = tokio::spawn(serve(transfer, Duration::from_secs(5), tx));
++        let ready = rx.recv().await.unwrap();
++        assert_eq!(ready["event"], "ready");
++        let offer = Offer {
++            host: IpAddr::V4(Ipv4Addr::LOCALHOST),
++            port: ready["port"].as_u64().unwrap() as u16,
++            fingerprint: ready["fingerprint"].as_str().unwrap().to_owned(),
++            token: ready["token"].as_str().unwrap().to_owned(),
++        };
++        let pulled = client::pull(&offer, client::DEFAULT_MAX_BYTES).await.unwrap();
++        assert_eq!(pulled.request.file_count, 2);
++        let entries = zip::read_all(&pulled.archive).unwrap();
++        assert_eq!(entries.iter().map(|e| (e.name.clone(), e.data.clone())).collect::<Vec<_>>(), files);
++        server.await.unwrap().unwrap();
++    }
++
++    #[tokio::test]
++    async fn gives_up_when_nobody_fetches() {
++        let (tx, _rx) = unbounded_channel();
++        let transfer = Transfer { files: vec![("a.txt".into(), b"x".to_vec())], sender_id: String::new(), sender_name: String::new() };
++        let err = serve(transfer, Duration::from_millis(200), tx).await.unwrap_err();
++        assert!(format!("{err:#}").contains("did not fetch"), "{err:#}");
++    }
++
++    #[test]
++    fn parses_ranges_and_queries() {
++        assert_eq!(parse_range("bytes=0-", 10), Some((0, 9)));
++        assert_eq!(parse_range("bytes=2-5", 10), Some((2, 5)));
++        assert_eq!(parse_range("bytes=5-20", 10), None);
++        assert_eq!(query_value("/download?taskId=ab%2Bc&token=t", "taskId").as_deref(), Some("ab+c"));
++        assert_eq!(query_value("/download", "taskId"), None);
++    }
++}
+diff --git a/fex/src/zip.rs b/fex/src/zip.rs
+index 4beba69..0a96fd2 100644
+--- a/fex/src/zip.rs
++++ b/fex/src/zip.rs
+@@ -53,6 +53,56 @@ pub fn crc32(data: &[u8]) -> u32 {
+     !data.iter().fold(!0u32, |c, &b| TABLE[((c ^ b as u32) & 0xFF) as usize] ^ (c >> 8))
+ }
+ 
++/// Builds a plain zip of stored (uncompressed) entries, sizes and CRC in the headers. No Zip64:
++/// the archive and every entry must stay under 4 GiB.
++pub fn write_stored(entries: &[(&str, &[u8])]) -> Result<Vec<u8>> {
++    if entries.len() > MAX_ENTRIES {
++        bail!("zip: too many files");
++    }
++    let total: usize = entries.iter().map(|(n, d)| d.len() + 2 * n.len() + 76).sum::<usize>() + 22;
++    if total >= u32::MAX as usize {
++        bail!("zip: the transfer is too large (4 GiB limit)");
++    }
++    let mut out = Vec::with_capacity(total);
++    let mut central = Vec::new();
++    for (name, data) in entries {
++        let crc = crc32(data);
++        let offset = out.len() as u32;
++        let size = data.len() as u32;
++        // Flag bit 11: the name is UTF-8.
++        for (sink, sig, extra_version) in [(&mut out, LFH_SIG, false), (&mut central, CDH_SIG, true)] {
++            sink.extend_from_slice(&sig.to_le_bytes());
++            if extra_version {
++                sink.extend_from_slice(&20u16.to_le_bytes()); // version made by
++            }
++            sink.extend_from_slice(&20u16.to_le_bytes()); // version needed
++            sink.extend_from_slice(&0x0800u16.to_le_bytes());
++            sink.extend_from_slice(&METHOD_STORE.to_le_bytes());
++            sink.extend_from_slice(&[0, 0, 0x21, 0]); // time 00:00, date 1980-01-01
++            sink.extend_from_slice(&crc.to_le_bytes());
++            sink.extend_from_slice(&size.to_le_bytes());
++            sink.extend_from_slice(&size.to_le_bytes());
++            sink.extend_from_slice(&(name.len() as u16).to_le_bytes());
++            sink.extend_from_slice(&0u16.to_le_bytes()); // extra length
++        }
++        out.extend_from_slice(name.as_bytes());
++        out.extend_from_slice(data);
++        central.extend_from_slice(&[0; 10]); // comment length, disk, internal and external attributes
++        central.extend_from_slice(&offset.to_le_bytes());
++        central.extend_from_slice(name.as_bytes());
++    }
++    let cd_offset = out.len() as u32;
++    out.extend_from_slice(&central);
++    out.extend_from_slice(&EOCD_SIG.to_le_bytes());
++    out.extend_from_slice(&[0; 4]);
++    out.extend_from_slice(&(entries.len() as u16).to_le_bytes());
++    out.extend_from_slice(&(entries.len() as u16).to_le_bytes());
++    out.extend_from_slice(&(central.len() as u32).to_le_bytes());
++    out.extend_from_slice(&cd_offset.to_le_bytes());
++    out.extend_from_slice(&0u16.to_le_bytes());
++    Ok(out)
++}
++
+ /// Every file entry (directories skipped), in central-directory order.
+ pub fn read_all(archive: &[u8]) -> Result<Vec<Entry>> {
+     // End of central directory: 22 bytes + up to 64 KiB of comment, searched from the end.
 diff --git a/src/clipboard.rs b/src/clipboard.rs
 index 720c4c5..7a7c0a5 100644
 --- a/src/clipboard.rs

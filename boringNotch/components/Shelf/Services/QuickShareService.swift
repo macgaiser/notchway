@@ -60,6 +60,9 @@ class QuickShareService: ObservableObject {
             }
         }
         
+        // The paired Android phone, served by PhoneFiles instead of a system sharing service.
+        providers.insert(QuickShareProvider(id: PhoneFiles.shareProviderID, imageData: PhoneFiles.shareProviderImage, supportsRawText: false), at: 0)
+
         if let idx = providers.firstIndex(where: { $0.id == "AirDrop" }) {
             let ad = providers.remove(at: idx)
             providers.insert(ad, at: 0)
@@ -112,6 +115,10 @@ class QuickShareService: ObservableObject {
     @MainActor
     func shareFilesOrText(_ items: [Any], using provider: QuickShareProvider, from view: NSView?) async {
         let fileURLs = items.compactMap { $0 as? URL }.filter { $0.isFileURL }
+        if provider.id == PhoneFiles.shareProviderID {
+            PhoneFiles.shared.send(fileURLs)
+            return
+        }
         // Stop any previous sharing access
         stopSharingAccessingURLs()
         // Start security-scoped access for all file URLs
