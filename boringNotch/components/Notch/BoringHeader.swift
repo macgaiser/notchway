@@ -13,6 +13,7 @@ struct BoringHeader: View {
     @ObservedObject var batteryModel = BatteryStatusViewModel.shared
     @ObservedObject var coordinator = BoringViewCoordinator.shared
     @StateObject var tvm = ShelfStateViewModel.shared
+    @ObservedObject private var tabDrag = IslandTabDrag.shared
     var body: some View {
         HStack(spacing: 0) {
             HStack {
@@ -96,6 +97,33 @@ struct BoringHeader: View {
             .zIndex(2)
         }
         .foregroundColor(.gray)
+        .coordinateSpace(name: IslandTabDrag.space)
+        .onGeometryChange(for: CGFloat.self) { proxy in
+            proxy.size.width
+        } action: { width in
+            tabDrag.headerWidth = width
+        }
+        .overlay {
+            if let dragged = tabDrag.dragged {
+                GeometryReader { proxy in
+                    if let x = tabDrag.markerX {
+                        Capsule()
+                            .fill(Color.accentColor)
+                            .frame(width: 2, height: 20)
+                            .position(x: x, y: proxy.size.height / 2)
+                    }
+                    Image(systemName: dragged.icon)
+                        .font(.system(size: 13))
+                        .foregroundStyle(.white)
+                        .frame(width: 30, height: 26)
+                        .background(Capsule().fill(Color(nsColor: .secondarySystemFill)))
+                        .shadow(color: .black.opacity(0.5), radius: 5, y: 2)
+                        .position(x: tabDrag.location.x, y: proxy.size.height / 2)
+                }
+                .allowsHitTesting(false)
+            }
+        }
+        .zIndex(3)
         .environmentObject(vm)
     }
 

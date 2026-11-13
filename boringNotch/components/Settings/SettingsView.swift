@@ -51,6 +51,21 @@ struct SettingsView: View {
                 NavigationLink(value: "Island") {
                     Label("Ansichten", systemImage: "rectangle.3.group")
                 }
+                NavigationLink(value: "QuickLaunch") {
+                    Label("Schnellstart", systemImage: "square.grid.2x2")
+                }
+                NavigationLink(value: "Pomodoro") {
+                    Label("Pomodoro", systemImage: "timer")
+                }
+                NavigationLink(value: "Clipboard") {
+                    Label("Zwischenablage", systemImage: "doc.on.clipboard")
+                }
+                NavigationLink(value: "Phone") {
+                    Label("Handy", systemImage: "smartphone")
+                }
+                NavigationLink(value: "Google") {
+                    Label("Google-Konto", systemImage: "person.crop.circle")
+                }
                 NavigationLink(value: "Shelf") {
                     Label("Shelf", systemImage: "books.vertical")
                 }
@@ -88,6 +103,16 @@ struct SettingsView: View {
                     Charge()
                 case "Island":
                     IslandSettings()
+                case "QuickLaunch":
+                    QuickLaunchSettings()
+                case "Pomodoro":
+                    PomodoroSettings()
+                case "Clipboard":
+                    ClipboardSettings()
+                case "Phone":
+                    PhoneSettings()
+                case "Google":
+                    GoogleAccountSettings()
                 case "Shelf":
                     Shelf()
                 case "Shortcuts":
@@ -291,8 +316,6 @@ struct GeneralSettings: View {
             }
                 .disabled(!openNotchOnHover)
             if enableGestures {
-                Toggle("Change media with horizontal gestures", isOn: .constant(false))
-                    .disabled(true)
                 Defaults.Toggle(key: .closeGestureEnabled) {
                     Text("Close gesture")
                 }
@@ -311,7 +334,6 @@ struct GeneralSettings: View {
         } header: {
             HStack {
                 Text("Gesture control")
-                customBadge(text: "Beta")
             }
         } footer: {
             Text(
@@ -547,7 +569,6 @@ struct HUD: View {
             } header: {
                 HStack {
                     Text("Open Notch")
-                    customBadge(text: "Beta")
                 }
             }
             .disabled(!hudReplacement)
@@ -607,6 +628,8 @@ struct Media: View {
 
     var body: some View {
         Form {
+            PlayerLauncherSection()
+
             Section {
                 Picker("Music Source", selection: $mediaController) {
                     ForEach(availableMediaControllers) { controller in
@@ -669,7 +692,6 @@ struct Media: View {
                     label:
                         HStack {
                             Text("Full screen behavior")
-                            customBadge(text: "Beta")
                         }
                 ) {
                     Text("Hide for all apps").tag(HideNotchOption.always)
@@ -686,7 +708,6 @@ struct Media: View {
                 Defaults.Toggle(key: .enableLyrics) {
                     HStack {
                         Text("Show lyrics below artist name")
-                        customBadge(text: "Beta")
                     }
                 }
             } header: {
@@ -845,12 +866,6 @@ struct About: View {
             Form {
                 Section {
                     HStack {
-                        Text("Release name")
-                        Spacer()
-                        Text(Defaults[.releaseName])
-                            .foregroundStyle(.secondary)
-                    }
-                    HStack {
                         Text("Version")
                         Spacer()
                         if showBuildNumber {
@@ -869,8 +884,6 @@ struct About: View {
                     Text("Version info")
                 }
 
-                UpdaterSettingsView(updater: updaterController.updater)
-
                 HStack(spacing: 30) {
                     Spacer(minLength: 0)
                     Button {
@@ -883,7 +896,7 @@ struct About: View {
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
                                 .frame(width: 18)
-                            Text("GitHub")
+                            Text("boring.notch auf GitHub")
                         }
                         .contentShape(Rectangle())
                     }
@@ -893,7 +906,7 @@ struct About: View {
             }
             VStack(spacing: 0) {
                 Divider()
-                Text("Made with 🫶🏻 by not so boring not.people")
+Text("Basiert auf boring.notch von TheBoredTeam · GPL-3.0")
                     .foregroundStyle(.secondary)
                     .padding(.top, 5)
                     .padding(.bottom, 7)
@@ -901,13 +914,6 @@ struct About: View {
                     .padding(.horizontal, 10)
             }
             .frame(maxWidth: .infinity, alignment: .center)
-        }
-        .toolbar {
-            //            Button("Welcome window") {
-            //                openWindow(id: "onboarding")
-            //            }
-            //            .controlSize(.extraLarge)
-            CheckForUpdatesView(updater: updaterController.updater)
         }
         .navigationTitle("About")
     }
@@ -1201,42 +1207,6 @@ struct Appearance: View {
                 }
             } header: {
                 Text("Media")
-            }
-
-            Section {
-                Toggle(
-                    "Use music visualizer spectrogram",
-                    isOn: $useMusicVisualizer.animation()
-                )
-                .disabled(true)
-                if !useMusicVisualizer {
-                    if customVisualizers.count > 0 {
-                        Picker(
-                            "Selected animation",
-                            selection: $selectedVisualizer
-                        ) {
-                            ForEach(
-                                customVisualizers,
-                                id: \.self
-                            ) { visualizer in
-                                Text(visualizer.name)
-                                    .tag(visualizer)
-                            }
-                        }
-                    } else {
-                        HStack {
-                            Text("Selected animation")
-                            Spacer()
-                            Text("No custom animation available")
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-            } header: {
-                HStack {
-                    Text("Custom music live activity animation")
-                    customBadge(text: "Coming soon")
-                }
             }
 
             Section {
@@ -1567,50 +1537,6 @@ struct Advanced: View {
                 }
             } header: {
                 Text("Window Appearance")
-            }
-            
-            Section {
-                HStack {
-                    ForEach(icons, id: \.self) { icon in
-                        Spacer()
-                        VStack {
-                            Image(icon)
-                                .resizable()
-                                .frame(width: 80, height: 80)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 20, style: .circular)
-                                        .strokeBorder(
-                                            icon == selectedIcon ? Color.effectiveAccent : .clear,
-                                            lineWidth: 2.5
-                                        )
-                                )
-
-                            Text("Default")
-                                .fontWeight(.medium)
-                                .font(.caption)
-                                .foregroundStyle(icon == selectedIcon ? .white : .secondary)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 3)
-                                .background(
-                                    Capsule()
-                                        .fill(icon == selectedIcon ? Color.effectiveAccent : .clear)
-                                )
-                        }
-                        .onTapGesture {
-                            withAnimation {
-                                selectedIcon = icon
-                            }
-                            NSApp.applicationIconImage = NSImage(named: icon)
-                        }
-                        Spacer()
-                    }
-                }
-                .disabled(true)
-            } header: {
-                HStack {
-                    Text("App icon")
-                    customBadge(text: "Coming soon")
-                }
             }
             
             Section {

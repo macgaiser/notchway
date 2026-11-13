@@ -20,12 +20,14 @@ struct TabSelectionView: View {
     }
 
     var part: Part = .leading
-    static let leadingCapacity = 5
+    @ObservedObject private var drag = IslandTabDrag.shared
+    @Default(.islandTabsLeading) private var leadingTabs
+    @Default(.islandTabsTrailing) private var trailingTabs
 
     private var tabs: [NotchViews] {
-        let all = NotchViews.allCases.filter { $0.isVisible(hidden: hiddenTabs, shelfEnabled: shelfEnabled) }
-        guard all.count > 1 else { return [] }
-        return part == .leading ? Array(all.prefix(Self.leadingCapacity)) : Array(all.dropFirst(Self.leadingCapacity))
+        let sides = IslandTabLayout.visible(leading: leadingTabs, trailing: trailingTabs, hidden: hiddenTabs, shelfEnabled: shelfEnabled)
+        guard sides.leading.count + sides.trailing.count > 1 else { return [] }
+        return part == .leading ? sides.leading : sides.trailing
     }
 
     var body: some View {
@@ -39,6 +41,21 @@ struct TabSelectionView: View {
                     }
                     .help(tab.title)
                     .frame(height: 26)
+                    .opacity(drag.dragged == tab ? 0.3 : 1)
+                    .onGeometryChange(for: CGRect.self) { proxy in
+                        proxy.frame(in: .named(IslandTabDrag.space))
+                    } action: { frame in
+                        drag.frames[tab] = frame
+                    }
+                    // Symbols can be dragged to another slot, also to the other side of the notch.
+                    .simultaneousGesture(
+                        DragGesture(minimumDistance: 8, coordinateSpace: .named(IslandTabDrag.space))
+                            .onChanged { value in
+                                drag.dragged = tab
+                                drag.location = value.location
+                            }
+                            .onEnded { _ in drag.end() }
+                    )
                     .foregroundStyle(tab == coordinator.currentView ? .white : .gray)
                     .background {
                         if tab == coordinator.currentView {

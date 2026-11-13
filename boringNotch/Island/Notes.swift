@@ -184,12 +184,18 @@ final class NotesStore: ObservableObject {
 struct NotesView: View {
     @ObservedObject private var store = NotesStore.shared
     @ObservedObject private var auth = GoogleAuth.shared
+    @State private var showInfo = false
 
     var body: some View {
         HStack(spacing: 10) {
             sidebar
             editor
         }
+        .islandInfo(isShown: $showInfo, title: "Wo liegen diese Notizen?", points: [
+            "Die Notizen liegen auf diesem Mac und, mit verbundenem Google-Konto, zusätzlich in Google Tasks in der Liste „\(TasksStore.notesListTitle)“. Am Handy findest du sie in der Google-Tasks-App.",
+            "Mit Google Notizen (Keep) ist kein Abgleich möglich: Google bietet dafür bei privaten Konten keine Schnittstelle. Notizen von hier erscheinen nicht in Keep, Keep-Notizen nicht hier.",
+            "Ohne Google-Konto bleiben die Notizen nur auf diesem Mac.",
+        ])
         .task { await store.sync() }
         .onAppear { IslandFocus.allowsKey = true }
         .onDisappear {
@@ -214,6 +220,7 @@ struct NotesView: View {
                 }
                 .buttonStyle(IslandTileStyle())
 
+                IslandInfoButton(isShown: $showInfo)
                 if auth.isConnected {
                     Image(systemName: store.syncError != nil ? "exclamationmark.icloud" : store.isSyncing ? "arrow.triangle.2.circlepath.icloud" : "checkmark.icloud")
                         .font(.caption)

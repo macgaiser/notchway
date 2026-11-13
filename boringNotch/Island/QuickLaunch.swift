@@ -148,12 +148,14 @@ struct QuickLaunchView: View {
 
 /// Shared press and hover feedback for tiles inside the island.
 struct IslandTileStyle: ButtonStyle {
+    /// Radius of the highlight; 0 where the tile is one segment of a larger shape.
+    var cornerRadius: CGFloat = 12
     @State private var hovering = false
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .background(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: cornerRadius)
                     .fill(Color.white.opacity(configuration.isPressed ? 0.16 : hovering ? 0.09 : 0))
             )
             .scaleEffect(configuration.isPressed ? 0.94 : 1)

@@ -93,3 +93,62 @@ struct IconActionButton: View {
             .frame(width: 22, height: 20)
     }
 }
+
+/// A small "i" that opens an explanation over the view it belongs to.
+struct IslandInfoButton: View {
+    @Binding var isShown: Bool
+
+    var body: some View {
+        Button {
+            isShown.toggle()
+        } label: {
+            Image(systemName: isShown ? "info.circle.fill" : "info.circle")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(width: 18, height: 18)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Hinweis")
+    }
+}
+
+extension View {
+    /// Covers the view with an explanation while `isShown` is set. A click anywhere closes it.
+    /// Drawn inside the island, since a popover would count as leaving it.
+    func islandInfo(isShown: Binding<Bool>, title: String, points: [String]) -> some View {
+        overlay {
+            if isShown.wrappedValue {
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack {
+                        Label(title, systemImage: "info.circle.fill")
+                            .font(.callout.weight(.semibold))
+                            .foregroundStyle(.white)
+                        Spacer()
+                        Image(systemName: "xmark")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    ForEach(points, id: \.self) { point in
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            Text("•")
+                            Text(point)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.85))
+                    }
+                    Spacer(minLength: 0)
+                }
+                .padding(10)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .background(RoundedRectangle(cornerRadius: 12).fill(Color(white: 0.11)))
+                .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Color.white.opacity(0.12), lineWidth: 1))
+                .contentShape(Rectangle())
+                .onTapGesture { isShown.wrappedValue = false }
+                .transition(.opacity)
+            }
+        }
+        .animation(.easeOut(duration: 0.15), value: isShown.wrappedValue)
+    }
+}

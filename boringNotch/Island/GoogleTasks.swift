@@ -215,6 +215,7 @@ struct TasksView: View {
     @ObservedObject private var store = TasksStore.shared
     @State private var newTitle = ""
     @State private var editing: GoogleTask?
+    @State private var showInfo = false
 
     var body: some View {
         if auth.isConnected {
@@ -228,6 +229,11 @@ struct TasksView: View {
                         toolbar
                         content
                     }
+                    .islandInfo(isShown: $showInfo, title: "Was zeigt diese Ansicht?", points: [
+                        "Hier stehen deine Listen aus Google Tasks. Änderungen gehen direkt an Google und erscheinen auch in der Google-Tasks-App.",
+                        "Aus Google Notizen (Keep) kommen nur Notizen mit Erinnerung hierher: Google legt für jede Erinnerung selbst eine Aufgabe an. Notizen ohne Erinnerung bleiben in Keep.",
+                        "Die Liste „\(TasksStore.notesListTitle)“ gehört zur Ansicht „Notizen“ und ist hier ausgeblendet.",
+                    ])
                     .transition(.opacity)
                 }
             }
@@ -251,6 +257,14 @@ struct TasksView: View {
         }
     }
 
+    private var selectedListTitle: String {
+        store.visibleLists.first { $0.id == store.selectedListID }?.title ?? "Liste"
+    }
+
+    private static func shortened(_ title: String, to limit: Int = 34) -> String {
+        title.count > limit ? title.prefix(limit - 1).trimmingCharacters(in: .whitespaces) + "…" : title
+    }
+
     private var toolbar: some View {
         HStack(spacing: 8) {
             Menu {
@@ -258,12 +272,12 @@ struct TasksView: View {
                     Button(list.title) { store.selectedListID = list.id }
                 }
             } label: {
-                Text(store.visibleLists.first { $0.id == store.selectedListID }?.title ?? "Liste")
+                // The menu button takes the width of its title, so a long list name is cut here.
+                Text(Self.shortened(selectedListTitle))
                     .lineLimit(1)
             }
             .menuStyle(.borderlessButton)
             .fixedSize()
-            .frame(maxWidth: 150, alignment: .leading)
 
             TextField("Neue Aufgabe", text: $newTitle)
                 .textFieldStyle(.plain)
@@ -287,6 +301,8 @@ struct TasksView: View {
             .buttonStyle(.plain)
             .foregroundStyle(.secondary)
             .help("Mit Google abgleichen")
+
+            IslandInfoButton(isShown: $showInfo)
         }
     }
 

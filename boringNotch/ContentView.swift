@@ -555,6 +555,11 @@ struct ContentView: View {
                 guard !Task.isCancelled else { return }
                 
                 await MainActor.run {
+                    // Typing hides the pointer, which reports as leaving. While a text field
+                    // in the island is being typed in and the pointer has not moved away, stay open.
+                    if self.vm.notchState == .open, IslandFocus.allowsKey, self.pointerIsOverOpenNotch() {
+                        return
+                    }
                     withAnimation(animationSpring) {
                         self.isHovering = false
                     }
@@ -565,6 +570,15 @@ struct ContentView: View {
                 }
             }
         }
+    }
+
+    /// Whether the pointer still lies within the open island, whatever the hover tracking says.
+    private func pointerIsOverOpenNotch() -> Bool {
+        let pointer = NSEvent.mouseLocation
+        guard let screen = NSScreen.screens.first(where: { $0.frame.insetBy(dx: -1, dy: -1).contains(pointer) }) else { return false }
+        let size = vm.notchSize
+        let area = CGRect(x: screen.frame.midX - size.width / 2, y: screen.frame.maxY - size.height, width: size.width, height: size.height + 1)
+        return area.contains(pointer)
     }
 
     // MARK: - Gesture Handling

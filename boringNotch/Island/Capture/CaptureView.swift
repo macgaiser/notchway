@@ -261,15 +261,15 @@ struct CaptureView: View {
                 .background(Color.white.opacity(0.07))
                 .contentShape(Rectangle())
             }
-            .buttonStyle(IslandTileStyle())
+            .buttonStyle(IslandTileStyle(cornerRadius: 0))
 
             HStack(spacing: 1) {
-                videoOption("Bereich", icon: "rectangle.dashed", isOn: $videoSelectArea,
-                            help: "An: vorher einen Bereich aufziehen. Aus: ganzer Bildschirm.")
                 videoOption("Ton", icon: "speaker.wave.2.fill", isOn: $videoSystemAudio,
                             help: "Nimmt auf, was der Mac gerade abspielt")
                 videoOption("Mikro", icon: "mic.fill", isOn: $videoMicrophone,
                             help: "Nimmt zusätzlich deine Stimme auf")
+                videoOption("Bereich", icon: "rectangle.dashed", isOn: $videoSelectArea,
+                            help: "An: vorher einen Bereich aufziehen. Aus: ganzer Bildschirm.")
             }
             .frame(height: 25)
             .disabled(recorder.isRecording)
@@ -283,11 +283,11 @@ struct CaptureView: View {
         Button {
             isOn.wrappedValue.toggle()
         } label: {
-            HStack(spacing: 3) {
+            HStack(spacing: 2) {
                 Image(systemName: icon)
-                    .font(.system(size: 9))
+                    .font(.system(size: 8))
                 Text(title)
-                    .font(.system(size: 10, weight: .medium))
+                    .font(.system(size: 9.5, weight: .medium))
                     .lineLimit(1)
             }
             .foregroundStyle(isOn.wrappedValue ? .white : .secondary)

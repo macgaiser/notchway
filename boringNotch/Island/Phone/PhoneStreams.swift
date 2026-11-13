@@ -12,10 +12,18 @@
 //
 
 import AppKit
+import Defaults
 import SwiftUI
 import WebKit
 
-struct PhoneApp: Identifiable, Hashable {
+extension Defaults.Keys {
+    /// On: apps open on a wide, tablet-sized display. Off: in the phone's own portrait shape.
+    static let islandPhoneAppsLandscape = Key<Bool>("islandPhoneAppsLandscape", default: true)
+    /// Apps pinned to the left of the app grid, in the order the user arranged them.
+    static let islandPhoneFavorites = Key<[PhoneApp]>("islandPhoneFavorites", default: [])
+}
+
+struct PhoneApp: Identifiable, Hashable, Codable, Defaults.Serializable {
     let pkg: String
     let name: String
     let userId: Int
@@ -206,7 +214,7 @@ final class PhoneStreams: ObservableObject {
         streams.append(PhoneStreamWindow(pkg: app.pkg, title: app.name, host: self))
         // source 1 marks a start the phone itself asked for, which it accepts without the
         // "allow" prompt. Starts from the Mac normally carry 0 and get the prompt every time.
-        send(service: 15, ["ver": "1", "cmd": 1, "data": peerStartData(pkg: app.pkg, cmp: app.cmp, userId: app.userId, source: 1)])
+        send(service: 15, ["ver": "1", "cmd": 1, "data": appStartData(pkg: app.pkg, cmp: app.cmp, userId: app.userId, source: 1)])
         armTimeout()
     }
 
@@ -253,6 +261,19 @@ final class PhoneStreams: ObservableObject {
             "supportCustomDisplay": false,
             "vrSupportUnfolded": false,
         ]
+    }
+
+    /// Start data for an app. In landscape mode the phone creates a display of exactly the size
+    /// named here instead of one shaped like its own screen.
+    private func appStartData(pkg: String, cmp: Any?, userId: Int, source: Int) -> [String: Any] {
+        var data = peerStartData(pkg: pkg, cmp: cmp, userId: userId, source: source)
+        if Defaults[.islandPhoneAppsLandscape] {
+            data["supportCustomDisplay"] = true
+            data["displayWidth"] = 1600
+            data["displayHeight"] = 900
+            data["displayDensity"] = 160
+        }
+        return data
     }
 
     // MARK: - App list
@@ -382,7 +403,11 @@ final class PhoneStreams: ObservableObject {
                 streams.append(PhoneStreamWindow(pkg: pkg, title: title, host: self))
                 armTimeout()
             }
-            var reply = peerStartData(pkg: pkg, cmp: data["cmp"], userId: data["userId"] as? Int ?? 0, source: data["source"] as? Int ?? 0)
+            let userId = data["userId"] as? Int ?? 0
+            let source = data["source"] as? Int ?? 0
+            var reply = pkg == PhoneStreamWindow.mirrorPackage
+                ? peerStartData(pkg: pkg, cmp: data["cmp"], userId: userId, source: source)
+                : appStartData(pkg: pkg, cmp: data["cmp"], userId: userId, source: source)
             if let shortcut = data["shortcutId"] { reply["shortcutId"] = shortcut }
             send(service: 15, ["ver": "1", "cmd": 1, "data": reply])
 

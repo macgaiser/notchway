@@ -16,6 +16,18 @@ struct PhoneView: View {
     @State private var showingApps = false
     @State private var appSearch = ""
     @ObservedObject private var streams = PhoneStreams.shared
+    @Default(.islandPhoneAppsLandscape) private var appsLandscape
+    @Default(.islandPhoneFavorites) private var favorites
+    /// App being dragged between the grid and the favorites, and where the pointer is.
+    @State private var dragged: PhoneApp?
+    @State private var dragLocation: CGPoint = .zero
+    @State private var favoritesFrame: CGRect = .zero
+
+    private static let dragSpace = "phone"
+    private static let maxFavorites = 12
+    private static let favoriteColumns = 3
+    private static let favoriteTileHeight: CGFloat = 64
+    private static let favoriteSpacing: CGFloat = 4
 
     var body: some View {
         Group {
@@ -27,9 +39,27 @@ struct PhoneView: View {
                 unpaired
             } else {
                 HStack(alignment: .top, spacing: 12) {
-                    device
+                    VStack(alignment: .leading, spacing: 8) {
+                        // Keeps its normal height when the island grows for the app grid.
+                        device
+                            .frame(height: showingApps ? 122 : nil, alignment: .top)
+                        if showingApps, link.status.connected {
+                            favoritesArea
+                        }
+                    }
+                    .frame(width: 190)
                     Divider().overlay(Color.white.opacity(0.12))
                     notifications
+                }
+                .coordinateSpace(name: Self.dragSpace)
+                .overlay {
+                    if let dragged {
+                        PhoneAppIcon(app: dragged)
+                            .frame(width: 46, height: 46)
+                            .shadow(color: .black.opacity(0.5), radius: 8, y: 3)
+                            .position(dragLocation)
+                            .allowsHitTesting(false)
+                    }
                 }
             }
         }
@@ -40,6 +70,13 @@ struct PhoneView: View {
         .onDisappear {
             IslandFocus.allowsKey = false
             NSApp.keyWindow?.makeFirstResponder(nil)
+            vm.setIslandExpanded(false)
+        }
+        .onChange(of: showingApps) { _, showing in
+            vm.setIslandExpanded(showing && link.status.connected)
+        }
+        .onChange(of: link.status.connected) { _, connected in
+            if !connected { showingApps = false }
         }
     }
 
@@ -146,30 +183,38 @@ struct PhoneView: View {
                 .foregroundStyle(.secondary)
                 .labelStyle(.titleAndIcon)
             } else {
-                Text("Nicht verbunden")
+                Text(link.message ?? "Nicht verbunden")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(link.message == nil ? Color.secondary : Color.orange)
+                    .lineLimit(2)
             }
-            Spacer(minLength: 0)
-            statusMessage
+
+            // The two main actions fill the rest of the column.
             HStack(spacing: 6) {
                 if link.status.connected {
-                    Button("Spiegeln") {
+                    actionTile("Spiegeln", icon: "rectangle.on.rectangle", highlighted: false) {
                         PhoneStreams.shared.startMirror()
                         vm.close()
                     }
-                    .buttonStyle(.borderedProminent)
-                    Button(showingApps ? "Mitteilungen" : "Apps") {
+                    actionTile(showingApps ? "Mitteilungen" : "Apps", icon: showingApps ? "bell.fill" : "square.grid.2x2.fill", highlighted: showingApps) {
                         showingApps.toggle()
                         if showingApps { streams.requestApps() }
                     }
                 } else {
-                    Button("Verbinden") { Task { await link.connect() } }
+                    actionTile("Verbinden", icon: "link", highlighted: false) {
+                        Task { await link.connect() }
+                    }
+                    actionTile("Koppeln", icon: "qrcode", highlighted: false) {
+                        Task {
+                            if let url = await link.newPairingCode() {
+                                PairingWindow.shared.show(codeAt: url)
+                                vm.close()
+                            }
+                        }
+                    }
                 }
-                if !link.status.connected { pairButton(title: "Koppeln …") }
             }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
+            .frame(maxHeight: .infinity)
         }
         .frame(width: 190, alignment: .leading)
         .contextMenu {
@@ -183,6 +228,25 @@ struct PhoneView: View {
                 }
             }
         }
+    }
+
+    private func actionTile(_ title: String, icon: String, highlighted: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 5) {
+                Image(systemName: icon)
+                    .font(.system(size: 20))
+                    .frame(height: 24)
+                Text(title)
+                    .font(.caption.weight(.medium))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(RoundedRectangle(cornerRadius: 12).fill(highlighted ? Color.accentColor.opacity(0.85) : Color.white.opacity(0.08)))
+            .contentShape(RoundedRectangle(cornerRadius: 12))
+        }
+        .buttonStyle(IslandTileStyle())
     }
 
     private func batterySymbol(_ level: Int) -> String {
@@ -199,9 +263,121 @@ struct PhoneView: View {
 
     // MARK: - Apps
 
+    /// The grid on the right: everything that is not a favorite.
     private var filteredApps: [PhoneApp] {
+        let pinned = Set(favorites.map(\.id))
         let query = appSearch.trimmingCharacters(in: .whitespaces)
-        return query.isEmpty ? streams.apps : streams.apps.filter { $0.name.localizedCaseInsensitiveContains(query) }
+        return streams.apps.filter { app in
+            !pinned.contains(app.id) && (query.isEmpty || app.name.localizedCaseInsensitiveContains(query))
+        }
+    }
+
+    private func launch(_ app: PhoneApp) {
+        streams.start(app)
+        if streams.message == nil { vm.close() }
+    }
+
+    /// A tile that starts the app on click and can be dragged between grid and favorites.
+    /// The drag is handled here instead of by system drag and drop, which the island
+    /// would take for a file heading to the shelf.
+    private func appTile(_ app: PhoneApp, iconSize: CGFloat, height: CGFloat, lines: Int) -> some View {
+        let isFavorite = favorites.contains { $0.id == app.id }
+        return PhoneAppTile(app: app, iconSize: iconSize, height: height, lines: lines)
+            .opacity(dragged?.id == app.id ? 0.25 : 1)
+            .onTapGesture { launch(app) }
+            .gesture(
+                DragGesture(minimumDistance: 6, coordinateSpace: .named(Self.dragSpace))
+                    .onChanged { value in
+                        dragged = app
+                        dragLocation = value.location
+                    }
+                    .onEnded { value in
+                        drop(app, at: value.location)
+                        dragged = nil
+                    }
+            )
+            .contextMenu {
+                if isFavorite {
+                    Button("Aus Favoriten entfernen") { favorites.removeAll { $0.id == app.id } }
+                } else {
+                    Button("Zu Favoriten hinzufügen") { pin(app, at: favorites.count) }
+                        .disabled(favorites.count >= Self.maxFavorites)
+                }
+            }
+    }
+
+    private func pin(_ app: PhoneApp, at index: Int) {
+        var list = favorites
+        let wasPinned = list.contains { $0.id == app.id }
+        guard wasPinned || list.count < Self.maxFavorites else { return }
+        list.removeAll { $0.id == app.id }
+        list.insert(app, at: min(max(0, index), list.count))
+        withAnimation(.smooth(duration: 0.25)) { favorites = list }
+    }
+
+    private func drop(_ app: PhoneApp, at point: CGPoint) {
+        if favoritesFrame.contains(point) {
+            pin(app, at: favoriteIndex(at: point))
+        } else if point.x > favoritesFrame.maxX, favorites.contains(where: { $0.id == app.id }) {
+            // Dragged back onto the grid.
+            withAnimation(.smooth(duration: 0.25)) { favorites.removeAll { $0.id == app.id } }
+        }
+    }
+
+    /// Position in the favorites grid that lies under the pointer.
+    private func favoriteIndex(at point: CGPoint) -> Int {
+        let spacing = Self.favoriteSpacing
+        let cellWidth = (favoritesFrame.width - 2 * spacing + spacing) / CGFloat(Self.favoriteColumns)
+        let column = Int((point.x - favoritesFrame.minX - spacing) / cellWidth)
+        let row = Int((point.y - favoritesFrame.minY - spacing) / (Self.favoriteTileHeight + spacing))
+        return max(0, row) * Self.favoriteColumns + min(max(0, column), Self.favoriteColumns - 1)
+    }
+
+    private var favoritesArea: some View {
+        let targeted = dragged != nil && favoritesFrame.contains(dragLocation)
+        return VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text("Favoriten")
+                Spacer()
+                if !favorites.isEmpty {
+                    Text("\(favorites.count)/\(Self.maxFavorites)")
+                }
+            }
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(.secondary)
+
+            ZStack(alignment: .top) {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.white.opacity(targeted ? 0.1 : 0.04))
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(targeted ? Color.accentColor : Color.white.opacity(0.08), style: StrokeStyle(lineWidth: targeted ? 1.5 : 1, dash: favorites.isEmpty && !targeted ? [4, 4] : []))
+                if favorites.isEmpty {
+                    VStack(spacing: 6) {
+                        Image(systemName: "star")
+                            .font(.title3)
+                        Text("Apps von rechts hierher ziehen")
+                            .font(.caption2)
+                            .multilineTextAlignment(.center)
+                    }
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 16)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: Self.favoriteSpacing), count: Self.favoriteColumns), spacing: Self.favoriteSpacing) {
+                        ForEach(favorites) { app in
+                            appTile(app, iconSize: 36, height: Self.favoriteTileHeight, lines: 1)
+                        }
+                    }
+                    .padding(Self.favoriteSpacing)
+                }
+            }
+            .frame(maxHeight: .infinity)
+            .onGeometryChange(for: CGRect.self) { proxy in
+                proxy.frame(in: .named(Self.dragSpace))
+            } action: { frame in
+                favoritesFrame = frame
+            }
+        }
     }
 
     private var appPicker: some View {
@@ -213,6 +389,17 @@ struct PhoneView: View {
                     .padding(.vertical, 4)
                     .padding(.horizontal, 9)
                     .background(Capsule().fill(Color.white.opacity(0.09)))
+                Button {
+                    appsLandscape.toggle()
+                } label: {
+                    Image(systemName: appsLandscape ? "rectangle" : "rectangle.portrait")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 22, height: 20)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help(appsLandscape ? "Apps öffnen im Querformat (Tablet). Klicken für Hochformat." : "Apps öffnen im Hochformat (Handy). Klicken für Querformat.")
                 if let message = streams.message {
                     Text(message)
                         .font(.caption2)
@@ -223,27 +410,10 @@ struct PhoneView: View {
             if streams.apps.isEmpty {
                 IslandEmptyState(icon: "square.grid.2x2", text: "Lade die Apps vom Handy …")
             } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHStack(alignment: .top, spacing: 4) {
+                ScrollView(.vertical, showsIndicators: false) {
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 5), spacing: 4) {
                         ForEach(filteredApps) { app in
-                            Button {
-                                streams.start(app)
-                                if streams.message == nil { vm.close() }
-                            } label: {
-                                VStack(spacing: 4) {
-                                    PhoneAppIcon(app: app)
-                                        .frame(width: 38, height: 38)
-                                    Text(app.name)
-                                        .font(.system(size: 10))
-                                        .foregroundStyle(.white)
-                                        .lineLimit(2)
-                                        .multilineTextAlignment(.center)
-                                }
-                                .frame(width: 66, height: 78, alignment: .top)
-                                .padding(.top, 4)
-                                .contentShape(RoundedRectangle(cornerRadius: 10))
-                            }
-                            .buttonStyle(IslandTileStyle())
+                            appTile(app, iconSize: 42, height: 80, lines: 2)
                         }
                     }
                 }
@@ -417,6 +587,34 @@ private struct PairingCodeView: View {
         }
         .padding(24)
         .frame(width: 460, height: 540)
+    }
+}
+
+/// App icon with its name; lights up under the pointer.
+private struct PhoneAppTile: View {
+    let app: PhoneApp
+    let iconSize: CGFloat
+    let height: CGFloat
+    let lines: Int
+    @State private var hovering = false
+
+    var body: some View {
+        VStack(spacing: 4) {
+            PhoneAppIcon(app: app)
+                .frame(width: iconSize, height: iconSize)
+            Text(app.name)
+                .font(.system(size: 10))
+                .foregroundStyle(.white)
+                .lineLimit(lines)
+                .multilineTextAlignment(.center)
+                .frame(height: lines == 1 ? 13 : 25, alignment: .top)
+        }
+        .padding(.horizontal, 2)
+        .frame(maxWidth: .infinity)
+        .frame(height: height)
+        .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(hovering ? 0.1 : 0)))
+        .contentShape(RoundedRectangle(cornerRadius: 10))
+        .onHover { hovering = $0 }
     }
 }
 
