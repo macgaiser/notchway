@@ -199,7 +199,7 @@ final class PhoneStreams: ObservableObject {
             return
         }
         guard begin() else { return }
-        streams.append(PhoneStreamWindow(pkg: PhoneStreamWindow.mirrorPackage, title: link.status.model ?? "Handy", host: self))
+        streams.append(PhoneStreamWindow(pkg: PhoneStreamWindow.mirrorPackage, title: link.status.model ?? String(localized: "Handy"), host: self))
         send(service: 1, ["ver": "1.0.0", "cmd": 1, "view": 1, "reply": 0, "drawerMode": false])
         armTimeout()
     }
@@ -221,11 +221,11 @@ final class PhoneStreams: ObservableObject {
     /// The phone handles one start at a time.
     private func begin() -> Bool {
         guard link.status.connected else {
-            message = "Das Handy ist nicht verbunden."
+            message = String(localized: "Das Handy ist nicht verbunden.")
             return false
         }
         if streams.contains(where: { $0.state == .starting && Date().timeIntervalSince($0.createdAt) < 20 }) {
-            message = "Es startet gerade schon ein Fenster. Bitte einen Moment warten."
+            message = String(localized: "Es startet gerade schon ein Fenster. Bitte einen Moment warten.")
             return false
         }
         message = nil
@@ -238,7 +238,7 @@ final class PhoneStreams: ObservableObject {
         DispatchQueue.main.asyncAfter(deadline: .now() + 20) { [weak stream] in
             Task { @MainActor in
                 guard let stream, stream.state == .starting else { return }
-                stream.state = .failed("Das Handy hat nicht geantwortet. Ist es entsperrt?")
+                stream.state = .failed(String(localized: "Das Handy hat nicht geantwortet. Ist es entsperrt?"))
             }
         }
     }
@@ -479,16 +479,16 @@ final class PhoneStreams: ObservableObject {
 
     private static func errorText(_ code: Int?) -> String {
         switch code {
-        case 145: "Am Handy abgelehnt oder nicht erlaubt."
-        case 147: "Die Bestätigung am Handy kam nicht rechtzeitig."
-        case 293, 3858: "Das Handy überträgt bereits an ein anderes Gerät."
-        case 296, 3859: "Das Handy hat keinen freien Video-Encoder. Schließe ein anderes Handy-Fenster."
-        case 3861: "Ein anderes Fenster hat den Video-Encoder übernommen."
-        case 3860: "Diese App gibt es auf dem Handy nicht."
-        case 3857: "Die App wurde am Handy beendet."
-        case 305: "Die Übertragung ist am Handy deaktiviert oder eine andere läuft bereits."
-        case 306: "Die Übertragung ist auf dem Handy durch eine Richtlinie gesperrt."
-        default: "Das Handy hat die Übertragung beendet" + (code.map { " (Code \($0))." } ?? ".")
+        case 145: String(localized: "Am Handy abgelehnt oder nicht erlaubt.")
+        case 147: String(localized: "Die Bestätigung am Handy kam nicht rechtzeitig.")
+        case 293, 3858: String(localized: "Das Handy überträgt bereits an ein anderes Gerät.")
+        case 296, 3859: String(localized: "Das Handy hat keinen freien Video-Encoder. Schließe ein anderes Handy-Fenster.")
+        case 3861: String(localized: "Ein anderes Fenster hat den Video-Encoder übernommen.")
+        case 3860: String(localized: "Diese App gibt es auf dem Handy nicht.")
+        case 3857: String(localized: "Die App wurde am Handy beendet.")
+        case 305: String(localized: "Die Übertragung ist am Handy deaktiviert oder eine andere läuft bereits.")
+        case 306: String(localized: "Die Übertragung ist auf dem Handy durch eine Richtlinie gesperrt.")
+        default: String(localized: "Das Handy hat die Übertragung beendet") + (code.map { String(localized: " (Code \($0)).") } ?? ".")
         }
     }
 
@@ -535,7 +535,7 @@ final class PhoneStreams: ObservableObject {
             if let text = body["text"] as? String { input(7, ["text": text], on: stream) }
 
         case "error":
-            stream.state = .failed("Die Bildübertragung kam nicht zustande: \(body["message"] as? String ?? "unbekannter Fehler")")
+            stream.state = .failed(String(localized: "Die Bildübertragung kam nicht zustande: \(body["message"] as? String ?? "unbekannter Fehler")"))
 
         default:
             break
@@ -703,8 +703,8 @@ struct PhoneStreamContent: View {
                 if stream.state == .starting {
                     VStack(spacing: 10) {
                         ProgressView().controlSize(.large)
-                        Text(stream.isMirror ? "Verbinde mit dem Handy …" : "Starte \(stream.title) …")
-                        Text("Falls das Handy gesperrt ist, bitte entsperren.")
+                        Text(stream.isMirror ? String(localized: "Verbinde mit dem Handy …") : String(localized: "Starte \(stream.title) …"))
+                        Text(String(localized: "Falls das Handy gesperrt ist, bitte entsperren."))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -720,11 +720,11 @@ struct PhoneStreamContent: View {
             .background(Color.black)
 
             HStack(spacing: 28) {
-                navigation("Zurück", icon: "chevron.backward", key: 4)
+                navigation(String(localized: "Zurück"), icon: "chevron.backward", key: 4)
                 // Home and Recents belong to the whole phone, not to a single app's window.
                 if stream.isMirror {
-                    navigation("Startbildschirm", icon: "circle", key: 3)
-                    navigation("Letzte Apps", icon: "square", key: 187)
+                    navigation(String(localized: "Startbildschirm"), icon: "circle", key: 3)
+                    navigation(String(localized: "Letzte Apps"), icon: "square", key: 187)
                 }
             }
             .frame(maxWidth: .infinity)

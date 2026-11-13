@@ -111,7 +111,7 @@ struct QuickLaunchView: View {
             VStack(spacing: 6) {
                 QuickLaunchIcon(item: item)
                     .frame(width: 46, height: 46)
-                Text(failedID == item.id ? "Nicht gefunden" : item.name)
+                Text(failedID == item.id ? String(localized: "Nicht gefunden") : item.name)
                     .font(.caption)
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
@@ -134,7 +134,7 @@ struct QuickLaunchView: View {
                     .font(.title2)
                     .foregroundStyle(.secondary)
                     .frame(width: 46, height: 46)
-                Text("Bearbeiten")
+                Text(String(localized: "Bearbeiten"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -142,7 +142,7 @@ struct QuickLaunchView: View {
             .contentShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(IslandTileStyle())
-        .help("Einträge in den Einstellungen unter „Ansichten“ verwalten")
+        .help(String(localized: "Einträge in den Einstellungen unter „Ansichten“ verwalten"))
     }
 }
 

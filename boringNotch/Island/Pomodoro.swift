@@ -21,7 +21,7 @@ final class PomodoroTimer: ObservableObject {
     enum Phase {
         case work, rest
 
-        var title: String { self == .work ? "Fokus" : "Pause" }
+        var title: String { self == .work ? String(localized: "Fokus") : String(localized: "Pause") }
         var color: Color { self == .work ? .orange : .green }
     }
 
@@ -129,17 +129,17 @@ struct PomodoroView: View {
                     Text(pomodoro.phase.title)
                         .font(.title3.weight(.semibold))
                         .foregroundStyle(pomodoro.phase.color)
-                    Text("Abgeschlossene Runden: \(pomodoro.completedRounds)")
+                    Text(String(localized: "Abgeschlossene Runden: \(pomodoro.completedRounds)"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
 
                 HStack(spacing: 8) {
-                    control(pomodoro.isRunning ? "pause.fill" : "play.fill", help: pomodoro.isRunning ? "Pausieren" : "Starten") {
+                    control(pomodoro.isRunning ? "pause.fill" : "play.fill", help: pomodoro.isRunning ? String(localized: "Pausieren") : String(localized: "Starten")) {
                         pomodoro.toggle()
                     }
-                    control("forward.end.fill", help: "Phase überspringen") { pomodoro.skip() }
-                    control("arrow.counterclockwise", help: "Zurücksetzen") { pomodoro.reset() }
+                    control("forward.end.fill", help: String(localized: "Phase überspringen")) { pomodoro.skip() }
+                    control("arrow.counterclockwise", help: String(localized: "Zurücksetzen")) { pomodoro.reset() }
                 }
             }
         }

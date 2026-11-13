@@ -25,28 +25,28 @@ struct IslandSettings: View {
     var body: some View {
         Form {
             Section {
-                Picker("Ansicht beim Öffnen", selection: $startView) {
+                Picker(String(localized: "Ansicht beim Öffnen"), selection: $startView) {
                     ForEach(IslandStartView.allCases) { option in
                         Text(option.title).tag(option)
                     }
                 }
             } footer: {
-                Text("Ist die gewählte Startansicht ausgeblendet, öffnet sich Player & Kalender.")
+                Text(String(localized: "Ist die gewählte Startansicht ausgeblendet, öffnet sich Player & Kalender."))
             }
 
             side(sides.leading, isLeading: true)
             side(sides.trailing, isLeading: false)
 
             Section {
-                Text("Die Symbole lassen sich auch direkt in der offenen Notch mit der Maus an eine andere Stelle ziehen, auch auf die andere Seite.")
+                Text(String(localized: "Die Symbole lassen sich auch direkt in der offenen Notch mit der Maus an eine andere Stelle ziehen, auch auf die andere Seite."))
                     .font(.callout)
                     .foregroundStyle(.secondary)
-                Button("Standardanordnung wiederherstellen") {
+                Button(String(localized: "Standardanordnung wiederherstellen")) {
                     Defaults.reset(.islandTabsLeading, .islandTabsTrailing)
                 }
             }
         }
-        .navigationTitle("Ansichten")
+        .navigationTitle(String(localized: "Ansichten"))
     }
 
     private func side(_ tabs: [NotchViews], isLeading: Bool) -> some View {
@@ -54,7 +54,7 @@ struct IslandSettings: View {
         let shown = tabs.filter { $0.isVisible(hidden: hiddenTabs, shelfEnabled: shelfEnabled) }.count
         return Section {
             if tabs.isEmpty {
-                Text("Keine Ansicht auf dieser Seite.")
+                Text(String(localized: "Keine Ansicht auf dieser Seite."))
                     .foregroundStyle(.secondary)
             }
             ForEach(tabs, id: \.self) { tab in
@@ -70,18 +70,18 @@ struct IslandSettings: View {
                         Image(systemName: "chevron.up")
                     }
                     .disabled(tabs.first == tab)
-                    .help("Weiter nach links")
+                    .help(String(localized: "Weiter nach links"))
                     Button {
                         move(tab, by: 1)
                     } label: {
                         Image(systemName: "chevron.down")
                     }
                     .disabled(tabs.last == tab)
-                    .help("Weiter nach rechts")
-                    Button(isLeading ? "Nach rechts" : "Nach links") {
+                    .help(String(localized: "Weiter nach rechts"))
+                    Button(isLeading ? String(localized: "Nach rechts") : String(localized: "Nach links")) {
                         switchSide(tab)
                     }
-                    .help(isLeading ? "Auf die rechte Seite der Notch" : "Auf die linke Seite der Notch")
+                    .help(isLeading ? String(localized: "Auf die rechte Seite der Notch") : String(localized: "Auf die linke Seite der Notch"))
                     Toggle(tab.title, isOn: visibility(of: tab))
                         .labelsHidden()
                         .toggleStyle(.switch)
@@ -90,17 +90,17 @@ struct IslandSettings: View {
                 }
             }
         } header: {
-            Text(isLeading ? "Links der Notch" : "Rechts der Notch")
+            Text(isLeading ? String(localized: "Links der Notch") : String(localized: "Rechts der Notch"))
         } footer: {
             if shown > capacity {
                 Text(isLeading
-                     ? "Links ist Platz für \(capacity) Symbole. Was nicht passt, rückt automatisch nach rechts."
-                     : "Rechts ist neben dem Einstellungen-Symbol Platz für etwa \(capacity) Symbole. Blende eine Ansicht aus oder schiebe sie nach links.")
+                     ? String(localized: "Links ist Platz für \(capacity) Symbole. Was nicht passt, rückt automatisch nach rechts.")
+                     : String(localized: "Rechts ist neben dem Einstellungen-Symbol Platz für etwa \(capacity) Symbole. Blende eine Ansicht aus oder schiebe sie nach links."))
                     .foregroundStyle(.orange)
             } else {
                 Text(isLeading
-                     ? "Die Reihenfolge von oben nach unten entspricht den Symbolen von links nach rechts. Player & Kalender ist immer sichtbar."
-                     : "Die Symbole stehen rechtsbündig, direkt vor dem Einstellungen-Symbol.")
+                     ? String(localized: "Die Reihenfolge von oben nach unten entspricht den Symbolen von links nach rechts. Player & Kalender ist immer sichtbar.")
+                     : String(localized: "Die Symbole stehen rechtsbündig, direkt vor dem Einstellungen-Symbol."))
             }
         }
     }
@@ -153,7 +153,7 @@ enum IslandFilePicker {
         panel.canChooseDirectories = multiple
         panel.allowsMultipleSelection = multiple
         panel.directoryURL = URL(fileURLWithPath: "/Applications")
-        panel.prompt = multiple ? "Hinzufügen" : "Auswählen"
+        panel.prompt = multiple ? String(localized: "Hinzufügen") : String(localized: "Auswählen")
         guard panel.runModal() == .OK else { return [] }
         return panel.urls.map(QuickLaunchItem.init(fileURL:))
     }
@@ -187,15 +187,15 @@ struct QuickLaunchSettings: View {
                         }
                         Spacer()
                         if item.isWeb {
-                            Picker("Browser", selection: browser(of: item)) {
-                                Text("Standardbrowser").tag(String?.none)
+                            Picker(String(localized: "Browser"), selection: browser(of: item)) {
+                                Text(String(localized: "Standardbrowser")).tag(String?.none)
                                 ForEach(browsers, id: \.path) { url in
                                     Text(url.deletingPathExtension().lastPathComponent).tag(String?.some(url.path))
                                 }
                             }
                             .labelsHidden()
                             .frame(width: 150)
-                            .help("Browser, in dem diese Website geöffnet wird")
+                            .help(String(localized: "Browser, in dem diese Website geöffnet wird"))
                         }
                         Button {
                             move(item, by: -1)
@@ -203,55 +203,55 @@ struct QuickLaunchSettings: View {
                             Image(systemName: "chevron.up")
                         }
                         .disabled(quickLaunch.first == item)
-                        .help("Nach vorne")
+                        .help(String(localized: "Nach vorne"))
                         Button {
                             move(item, by: 1)
                         } label: {
                             Image(systemName: "chevron.down")
                         }
                         .disabled(quickLaunch.last == item)
-                        .help("Nach hinten")
+                        .help(String(localized: "Nach hinten"))
                         Button(role: .destructive) {
                             quickLaunch.removeAll { $0.id == item.id }
                         } label: {
                             Image(systemName: "trash")
                         }
-                        .help("Entfernen")
+                        .help(String(localized: "Entfernen"))
                     }
                 }
-                Button("App, Datei oder Ordner hinzufügen …") { quickLaunch.append(contentsOf: IslandFilePicker.pick(multiple: true)) }
+                Button(String(localized: "App, Datei oder Ordner hinzufügen …")) { quickLaunch.append(contentsOf: IslandFilePicker.pick(multiple: true)) }
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Website hinzufügen")
+                    Text(String(localized: "Website hinzufügen"))
                     HStack {
-                        TextField("Name", text: $newSiteName, prompt: Text("Name (optional)"))
+                        TextField(String(localized: "Name"), text: $newSiteName, prompt: Text(String(localized: "Name (optional)")))
                             .labelsHidden()
                             .textFieldStyle(.roundedBorder)
                             .frame(width: 130)
-                        TextField("Adresse", text: $newSiteAddress, prompt: Text("Adresse, z. B. music.youtube.com oder http://nas:9091"))
+                        TextField(String(localized: "Adresse"), text: $newSiteAddress, prompt: Text(String(localized: "Adresse, z. B. music.youtube.com oder http://nas:9091")))
                             .labelsHidden()
                             .textFieldStyle(.roundedBorder)
                             .onSubmit { addSite() }
-                        Picker("Browser", selection: $newSiteBrowser) {
-                            Text("Standardbrowser").tag(String?.none)
+                        Picker(String(localized: "Browser"), selection: $newSiteBrowser) {
+                            Text(String(localized: "Standardbrowser")).tag(String?.none)
                             ForEach(browsers, id: \.path) { url in
                                 Text(url.deletingPathExtension().lastPathComponent).tag(String?.some(url.path))
                             }
                         }
                         .labelsHidden()
                         .frame(width: 140)
-                        Button("Hinzufügen") { addSite() }
+                        Button(String(localized: "Hinzufügen")) { addSite() }
                     }
                     if showAddressHint {
-                        Text("Bitte eine gültige Adresse eintragen, zum Beispiel music.youtube.com oder http://nas:9091.")
+                        Text(String(localized: "Bitte eine gültige Adresse eintragen, zum Beispiel music.youtube.com oder http://nas:9091."))
                             .font(.caption)
                             .foregroundStyle(.red)
                     }
                 }
             } header: {
-                Text("Schnellstart")
+                Text(String(localized: "Schnellstart"))
             }
         }
-        .navigationTitle("Schnellstart")
+        .navigationTitle(String(localized: "Schnellstart"))
     }
 
     private func browser(of item: QuickLaunchItem) -> Binding<String?> {
@@ -311,19 +311,19 @@ struct PlayerLauncherSection: View {
 
     var body: some View {
         Section {
-            Picker("Startknopf öffnet", selection: $musicLauncher) {
-                Text("Kein Startknopf").tag(QuickLaunchItem?.none)
+            Picker(String(localized: "Startknopf öffnet"), selection: $musicLauncher) {
+                Text(String(localized: "Kein Startknopf")).tag(QuickLaunchItem?.none)
                 ForEach(launcherChoices) { item in
                     Text(item.name).tag(QuickLaunchItem?.some(item))
                 }
             }
-            Button("Andere App wählen …") {
+            Button(String(localized: "Andere App wählen …")) {
                 if let item = IslandFilePicker.pick(multiple: false).first { musicLauncher = item }
             }
         } header: {
-            Text("Startknopf im Player")
+            Text(String(localized: "Startknopf im Player"))
         } footer: {
-            Text("Der Startknopf erscheint im Player, solange nichts abgespielt wird. Zur Auswahl stehen deine Schnellstart-Einträge oder eine beliebige App. In welchem Browser eine Website aufgeht, legst du unter „Schnellstart“ beim jeweiligen Eintrag fest.")
+            Text(String(localized: "Der Startknopf erscheint im Player, solange nichts abgespielt wird. Zur Auswahl stehen deine Schnellstart-Einträge oder eine beliebige App. In welchem Browser eine Website aufgeht, legst du unter „Schnellstart“ beim jeweiligen Eintrag fest."))
         }
     }
 
@@ -342,15 +342,15 @@ struct PomodoroSettings: View {
     var body: some View {
         Form {
             Section {
-                Stepper("Fokus: \(workMinutes) Minuten", value: $workMinutes, in: 1...120)
-                Stepper("Pause: \(breakMinutes) Minuten", value: $breakMinutes, in: 1...60)
+                Stepper(String(localized: "Fokus: \(workMinutes) Minuten"), value: $workMinutes, in: 1...120)
+                Stepper(String(localized: "Pause: \(breakMinutes) Minuten"), value: $breakMinutes, in: 1...60)
             } header: {
-                Text("Pomodoro")
+                Text(String(localized: "Pomodoro"))
             } footer: {
-                Text("Geänderte Zeiten gelten ab der nächsten Phase.")
+                Text(String(localized: "Geänderte Zeiten gelten ab der nächsten Phase."))
             }
         }
-        .navigationTitle("Pomodoro")
+        .navigationTitle(String(localized: "Pomodoro"))
     }
 }
 
@@ -360,17 +360,17 @@ struct ClipboardSettings: View {
     var body: some View {
         Form {
             Section {
-                Stepper("Einträge im Verlauf: \(clipboardLimit)", value: $clipboardLimit, in: 5...200, step: 5)
-                Button("Verlauf löschen", role: .destructive) {
+                Stepper(String(localized: "Einträge im Verlauf: \(clipboardLimit)"), value: $clipboardLimit, in: 5...200, step: 5)
+                Button(String(localized: "Verlauf löschen"), role: .destructive) {
                     ClipboardHistory.shared.clear()
                 }
             } header: {
-                Text("Verlauf")
+                Text(String(localized: "Verlauf"))
             } footer: {
-                Text("Gespeichert wird nur Text, lokal auf diesem Mac. Einträge, die Passwortmanager als vertraulich markieren, werden übersprungen. Ist die Ansicht ausgeblendet, wird nichts aufgezeichnet.")
+                Text(String(localized: "Gespeichert wird nur Text, lokal auf diesem Mac. Einträge, die Passwortmanager als vertraulich markieren, werden übersprungen. Ist die Ansicht ausgeblendet, wird nichts aufgezeichnet."))
             }
         }
-        .navigationTitle("Zwischenablage")
+        .navigationTitle(String(localized: "Zwischenablage"))
     }
 }
 
@@ -384,51 +384,51 @@ struct PhoneSettings: View {
         Form {
             Section {
                 if trustedNetworks.isEmpty {
-                    Text("Noch kein Netzwerk als vertraut markiert.")
+                    Text(String(localized: "Noch kein Netzwerk als vertraut markiert."))
                         .foregroundStyle(.secondary)
                 }
                 ForEach(trustedNetworks.sorted { $0.value < $1.value }, id: \.key) { id, label in
                     HStack {
                         Image(systemName: phone.network?.id == id ? "wifi" : "wifi.slash")
                             .foregroundStyle(phone.network?.id == id ? .green : .secondary)
-                        Text(label + (phone.network?.id == id ? " · aktuell verbunden" : ""))
+                        Text(label + (phone.network?.id == id ? String(localized: " · aktuell verbunden") : ""))
                         Spacer()
                         Button(role: .destructive) {
                             phone.forget(networkID: id)
                         } label: {
                             Image(systemName: "trash")
                         }
-                        .help("Nicht mehr vertrauen")
+                        .help(String(localized: "Nicht mehr vertrauen"))
                     }
                 }
                 if let network = phone.network, trustedNetworks[network.id] == nil {
-                    Button("Aktuellem Netzwerk vertrauen · \(network.label)") { phone.trustCurrentNetwork() }
+                    Button(String(localized: "Aktuellem Netzwerk vertrauen · \(network.label)")) { phone.trustCurrentNetwork() }
                 }
-                LabeledContent("Handy-Dienst", value: phone.daemonRunning ? "läuft" : "aus")
+                LabeledContent(String(localized: "Handy-Dienst"), value: phone.daemonRunning ? String(localized: "läuft") : String(localized: "aus"))
                 HStack {
-                    Button("Diagnose kopieren") { phone.copyDiagnosis() }
+                    Button(String(localized: "Diagnose kopieren")) { phone.copyDiagnosis() }
                     if let message = phone.message {
                         Text(message).font(.caption).foregroundStyle(.secondary)
                     }
                 }
             } header: {
-                Text("Vertraute Netzwerke")
+                Text(String(localized: "Vertraute Netzwerke"))
             } footer: {
-                Text("Für die Verbindung zum Handy nimmt der Mac Verbindungen aus dem lokalen Netzwerk an. Der Dienst dafür läuft nur in den hier aufgeführten Netzwerken und nur, solange die Ansicht „Handy“ eingeblendet ist. In jedem anderen Netzwerk ist er beendet und der Port geschlossen. Erkannt wird ein Netzwerk an seinem Router, nicht am Namen.")
+                Text(String(localized: "Für die Verbindung zum Handy nimmt der Mac Verbindungen aus dem lokalen Netzwerk an. Der Dienst dafür läuft nur in den hier aufgeführten Netzwerken und nur, solange die Ansicht „Handy“ eingeblendet ist. In jedem anderen Netzwerk ist er beendet und der Port geschlossen. Erkannt wird ein Netzwerk an seinem Router, nicht am Namen."))
             }
 
             Section {
-                Toggle("Vom Mac zum Handy", isOn: $phoneClipboardSend)
-                Toggle("Vom Handy zum Mac", isOn: $phoneClipboardReceive)
+                Toggle(String(localized: "Vom Mac zum Handy"), isOn: $phoneClipboardSend)
+                Toggle(String(localized: "Vom Handy zum Mac"), isOn: $phoneClipboardReceive)
             } header: {
-                Text("Zwischenablage")
+                Text(String(localized: "Zwischenablage"))
             } footer: {
-                Text("Übertragen wird nur Text. Was Passwortmanager als vertraulich markieren, bleibt auf dem Mac. Eine Änderung startet den Handy-Dienst kurz neu; das Handy verbindet sich danach von selbst wieder.")
+                Text(String(localized: "Übertragen wird nur Text. Was Passwortmanager als vertraulich markieren, bleibt auf dem Mac. Eine Änderung startet den Handy-Dienst kurz neu; das Handy verbindet sich danach von selbst wieder."))
             }
             .onChange(of: phoneClipboardSend) { _, _ in phone.restartService() }
             .onChange(of: phoneClipboardReceive) { _, _ in phone.restartService() }
         }
-        .navigationTitle("Handy")
+        .navigationTitle(String(localized: "Handy"))
     }
 }
 
@@ -441,22 +441,22 @@ struct GoogleAccountSettings: View {
         Form {
             Section {
                 TextField("Client-ID", text: $googleClientID, prompt: Text("…apps.googleusercontent.com"))
-                SecureField("Client-Schlüssel", text: $googleClientSecret, prompt: Text(google.hasClientSecret ? "Gespeichert" : "GOCSPX-…"))
+                SecureField(String(localized: "Client-Schlüssel"), text: $googleClientSecret, prompt: Text(google.hasClientSecret ? String(localized: "Gespeichert") : "GOCSPX-…"))
                 HStack {
                     if google.isConnected {
-                        Label("Verbunden", systemImage: "checkmark.circle.fill")
+                        Label(String(localized: "Verbunden"), systemImage: "checkmark.circle.fill")
                             .foregroundStyle(.green)
                         Spacer()
-                        Button("Trennen", role: .destructive) { google.disconnect() }
+                        Button(String(localized: "Trennen"), role: .destructive) { google.disconnect() }
                     } else {
-                        Button(google.isWorking ? "Warte auf Browser …" : "Mit Google verbinden") {
+                        Button(google.isWorking ? String(localized: "Warte auf Browser …") : String(localized: "Mit Google verbinden")) {
                             let secret = googleClientSecret
                             googleClientSecret = ""
                             Task { await google.connect(clientSecret: secret) }
                         }
                         .disabled(google.isWorking || googleClientID.isEmpty || (googleClientSecret.isEmpty && !google.hasClientSecret))
                         if google.isWorking {
-                            Button("Abbrechen") { google.cancelConnect() }
+                            Button(String(localized: "Abbrechen")) { google.cancelConnect() }
                         }
                     }
                 }
@@ -468,9 +468,35 @@ struct GoogleAccountSettings: View {
             } header: {
                 Text("Google-Konto")
             } footer: {
-                Text("Für die Ansichten „Aufgaben“ und „Notizen“. Client-ID und Client-Schlüssel stammen aus deinem eigenen Projekt in der Google Cloud Console (Typ „Desktop-App“). Die App fragt nur den Zugriff auf Google Tasks an. Schlüssel und Zugang liegen im macOS-Schlüsselbund.")
+                Text(String(localized: "Für die Ansichten „Aufgaben“ und „Notizen“. Client-ID und Client-Schlüssel stammen aus deinem eigenen Projekt in der Google Cloud Console (Typ „Desktop-App“). Die App fragt nur den Zugriff auf Google Tasks an. Schlüssel und Zugang liegen im macOS-Schlüsselbund."))
             }
         }
         .navigationTitle("Google-Konto")
+    }
+}
+
+/// Shown on the "General" page: the app's language, independent of the system's.
+struct LanguageSection: View {
+    @State private var language: String = (UserDefaults.standard.persistentDomain(forName: Bundle.main.bundleIdentifier ?? "")?["AppleLanguages"] as? [String])?.first.map { String($0.prefix(2)) } ?? ""
+
+    var body: some View {
+        Section {
+            Picker(String(localized: "Sprache"), selection: $language) {
+                Text(String(localized: "Wie das System")).tag("")
+                Text(verbatim: "Deutsch").tag("de")
+                Text(verbatim: "English").tag("en")
+            }
+            .onChange(of: language) { _, chosen in
+                if chosen.isEmpty {
+                    UserDefaults.standard.removeObject(forKey: "AppleLanguages")
+                } else {
+                    UserDefaults.standard.set([chosen], forKey: "AppleLanguages")
+                }
+                // Texts are looked up in the language the app started with.
+                ApplicationRelauncher.restart()
+            }
+        } footer: {
+            Text(String(localized: "Die App startet neu, damit die Sprache gilt."))
+        }
     }
 }

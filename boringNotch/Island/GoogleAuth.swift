@@ -58,11 +58,11 @@ enum GoogleAuthError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .notConfigured: "Client-ID und Client-Schlüssel fehlen."
-        case .notConnected: "Kein Google-Konto verbunden."
-        case .cancelled: "Die Anmeldung wurde nicht abgeschlossen."
-        case .denied(let reason): "Google hat die Anmeldung abgelehnt: \(reason)"
-        case .server(let reason): "Fehler bei Google: \(reason)"
+        case .notConfigured: String(localized: "Client-ID und Client-Schlüssel fehlen.")
+        case .notConnected: String(localized: "Kein Google-Konto verbunden.")
+        case .cancelled: String(localized: "Die Anmeldung wurde nicht abgeschlossen.")
+        case .denied(let reason): String(localized: "Google hat die Anmeldung abgelehnt: \(reason)")
+        case .server(let reason): String(localized: "Fehler bei Google: \(reason)")
         }
     }
 }
@@ -98,7 +98,7 @@ final class GoogleAuth: ObservableObject {
         }
 
         isWorking = true
-        message = "Warte auf die Anmeldung im Browser …"
+        message = String(localized: "Warte auf die Anmeldung im Browser …")
         defer { isWorking = false }
 
         do {
@@ -138,14 +138,14 @@ final class GoogleAuth: ObservableObject {
                 "client_secret": secret,
             ])
             guard let refresh = token.refresh_token else {
-                throw GoogleAuthError.server("Google hat keinen dauerhaften Zugang ausgestellt.")
+                throw GoogleAuthError.server(String(localized: "Google hat keinen dauerhaften Zugang ausgestellt."))
             }
             guard IslandKeychain.write(refresh, for: "refreshToken") else {
-                throw GoogleAuthError.server("Der Zugang konnte nicht im Schlüsselbund gespeichert werden.")
+                throw GoogleAuthError.server(String(localized: "Der Zugang konnte nicht im Schlüsselbund gespeichert werden."))
             }
             store(token)
             isConnected = true
-            message = "Verbunden."
+            message = String(localized: "Verbunden.")
         } catch {
             message = error.localizedDescription
         }
@@ -161,7 +161,7 @@ final class GoogleAuth: ObservableObject {
         accessToken = nil
         accessTokenExpiry = .distantPast
         isConnected = false
-        message = "Verbindung getrennt. Den Zugriff kannst du zusätzlich in deinem Google-Konto unter „Sicherheit“ widerrufen."
+        message = String(localized: "Verbindung getrennt. Den Zugriff kannst du zusätzlich in deinem Google-Konto unter „Sicherheit“ widerrufen.")
     }
 
     // MARK: - Tokens
@@ -221,7 +221,7 @@ final class GoogleAuth: ObservableObject {
         if let failure = try? JSONDecoder().decode(TokenFailure.self, from: data) {
             throw GoogleAuthError.denied(failure.error_description ?? failure.error)
         }
-        throw GoogleAuthError.server("Antwort \((response as? HTTPURLResponse)?.statusCode ?? 0)")
+        throw GoogleAuthError.server(String(localized: "Antwort \((response as? HTTPURLResponse)?.statusCode ?? 0)"))
     }
 
     // MARK: - PKCE helpers
@@ -315,8 +315,8 @@ final class LoopbackReceiver: @unchecked Sendable {
             // Browsers also ask for /favicon.ico; only the real redirect carries these.
             let isRedirect = answer["code"] != nil || answer["error"] != nil
             let text = answer["code"] != nil
-                ? "Anmeldung abgeschlossen. Du kannst dieses Fenster schließen."
-                : "Die Anmeldung wurde nicht abgeschlossen."
+                ? String(localized: "Anmeldung abgeschlossen. Du kannst dieses Fenster schließen.")
+                : String(localized: "Die Anmeldung wurde nicht abgeschlossen.")
             let body = "<!doctype html><meta charset=\"utf-8\"><title>Island</title><body style=\"font:16px -apple-system;padding:3em;text-align:center\">\(text)</body>"
             let response = "HTTP/1.1 \(isRedirect ? "200 OK" : "404 Not Found")\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: \(body.utf8.count)\r\nConnection: close\r\n\r\n\(body)"
             connection.send(content: Data(response.utf8), completion: .contentProcessed { _ in

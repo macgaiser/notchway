@@ -109,7 +109,7 @@ struct IslandInfoButton: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Hinweis")
+        .accessibilityLabel(String(localized: "Hinweis"))
     }
 }
 

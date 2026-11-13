@@ -38,7 +38,7 @@ struct DynamicNotchApp: App {
             }
             .keyboardShortcut(KeyEquivalent(","), modifiers: .command)
             Divider()
-            Button("Restart Boring Notch") {
+            Button("Restart Notchway") {
                 ApplicationRelauncher.restart()
             }
             Button("Quit", role: .destructive) {

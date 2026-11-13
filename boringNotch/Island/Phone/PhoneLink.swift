@@ -255,7 +255,7 @@ final class PhoneLink: ObservableObject {
             PhoneNotifier.shared.start(socketPath: socketDirectory.appendingPathComponent("notifications.sock").path)
             PhoneFiles.shared.start()
         } catch {
-            message = "Der Handy-Dienst ließ sich nicht starten: \(error.localizedDescription)"
+            message = String(localized: "Der Handy-Dienst ließ sich nicht starten: \(error.localizedDescription)")
         }
     }
 
@@ -366,7 +366,7 @@ final class PhoneLink: ObservableObject {
         let text = ([header] + lines.suffix(120) + ["--- Dateiübertragung ---"] + transfers).joined(separator: "\n")
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
-        message = "Diagnose kopiert. Füge sie in den Chat ein."
+        message = String(localized: "Diagnose kopiert. Füge sie in den Chat ein.")
     }
 
     // MARK: - Actions
@@ -374,16 +374,16 @@ final class PhoneLink: ObservableObject {
     /// Creates a fresh pairing code and returns the path of its image.
     func newPairingCode() async -> URL? {
         guard let answer = await request("pair"), answer["ok"] as? Bool == true, let path = answer["qr"] as? String else {
-            message = "Es konnte kein Kopplungs-Code erzeugt werden."
+            message = String(localized: "Es konnte kein Kopplungs-Code erzeugt werden.")
             return nil
         }
         return URL(fileURLWithPath: path)
     }
 
     func connect() async {
-        message = "Verbinde …"
+        message = String(localized: "Verbinde …")
         let answer = await request("connect", timeout: 75)
-        message = answer?["ok"] as? Bool == true ? nil : (answer?["message"] as? String ?? "Das Handy antwortet nicht. Öffne Smart Connect auf dem Handy.")
+        message = answer?["ok"] as? Bool == true ? nil : (answer?["message"] as? String ?? String(localized: "Das Handy antwortet nicht. Öffne Smart Connect auf dem Handy."))
     }
 
     func disconnect() async {
@@ -397,7 +397,7 @@ final class PhoneLink: ObservableObject {
     func reply(key: String, text: String) async -> Bool {
         let answer = await request(json(["cmd": "reply", "key": key, "text": text]))
         let ok = answer?["ok"] as? Bool == true
-        if !ok { message = answer?["message"] as? String ?? "Antwort konnte nicht gesendet werden." }
+        if !ok { message = answer?["message"] as? String ?? String(localized: "Antwort konnte nicht gesendet werden.") }
         return ok
     }
 }

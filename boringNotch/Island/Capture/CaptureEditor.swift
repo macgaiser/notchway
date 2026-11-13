@@ -19,13 +19,13 @@ enum MarkTool: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .pen: "Stift"
-        case .marker: "Textmarker"
-        case .arrow: "Pfeil"
-        case .rectangle: "Rechteck"
-        case .ellipse: "Ellipse"
-        case .text: "Text"
-        case .stamp: "Symbol"
+        case .pen: String(localized: "Stift")
+        case .marker: String(localized: "Textmarker")
+        case .arrow: String(localized: "Pfeil")
+        case .rectangle: String(localized: "Rechteck")
+        case .ellipse: String(localized: "Ellipse")
+        case .text: String(localized: "Text")
+        case .stamp: String(localized: "Symbol")
         }
     }
 
@@ -237,7 +237,7 @@ final class CaptureEditorModel: ObservableObject {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.writeObjects([NSImage(cgImage: result, size: pointSize)])
-        notice = "In die Zwischenablage kopiert."
+        notice = String(localized: "In die Zwischenablage kopiert.")
     }
 
     func save() {
@@ -247,9 +247,9 @@ final class CaptureEditorModel: ObservableObject {
         guard panel.runModal() == .OK, let url = panel.url, let data = pngData() else { return }
         do {
             try data.write(to: url, options: .atomic)
-            notice = "Gesichert: \(url.lastPathComponent)"
+            notice = String(localized: "Gesichert: \(url.lastPathComponent)")
         } catch {
-            notice = "Sichern fehlgeschlagen: \(error.localizedDescription)"
+            notice = String(localized: "Sichern fehlgeschlagen: \(error.localizedDescription)")
         }
     }
 
@@ -257,16 +257,16 @@ final class CaptureEditorModel: ObservableObject {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(Self.fileName())
         guard let data = pngData(), (try? data.write(to: url, options: .atomic)) != nil,
               let provider = NSItemProvider(contentsOf: url) else {
-            notice = "Ablegen fehlgeschlagen."
+            notice = String(localized: "Ablegen fehlgeschlagen.")
             return
         }
         ShelfStateViewModel.shared.load([provider])
-        notice = "In die Ablage der Island gelegt."
+        notice = String(localized: "In die Ablage der Island gelegt.")
     }
 
     func recognizeText() {
         let source = image
-        notice = "Erkenne Text …"
+        notice = String(localized: "Erkenne Text …")
         Task.detached(priority: .userInitiated) {
             let request = VNRecognizeTextRequest()
             request.recognitionLevel = .accurate
@@ -275,7 +275,7 @@ final class CaptureEditorModel: ObservableObject {
             try? VNImageRequestHandler(cgImage: source).perform([request])
             let lines = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }
             await MainActor.run {
-                self.notice = lines.isEmpty ? "Kein Text gefunden." : nil
+                self.notice = lines.isEmpty ? String(localized: "Kein Text gefunden.") : nil
                 self.recognizedText = lines.isEmpty ? nil : lines.joined(separator: "\n")
             }
         }
@@ -332,7 +332,7 @@ struct CaptureImageEditor: View {
                     )
                     .overlay(alignment: .topLeading) {
                         if let entry = model.textEntry {
-                            TextField("", text: $model.text, prompt: Text("Text …").foregroundColor(model.color.opacity(0.55)))
+                            TextField("", text: $model.text, prompt: Text(String(localized: "Text …")).foregroundColor(model.color.opacity(0.55)))
                                 .textFieldStyle(.plain)
                                 .font(.system(size: model.textSize * factor, weight: .semibold))
                                 .foregroundStyle(model.color)
@@ -364,7 +364,7 @@ struct CaptureImageEditor: View {
         VStack(spacing: 8) {
             // Row 1: what to draw with.
             HStack(spacing: 10) {
-                Picker("Werkzeug", selection: $model.tool) {
+                Picker(String(localized: "Werkzeug"), selection: $model.tool) {
                     ForEach(MarkTool.allCases) { tool in
                         Image(systemName: tool.icon).help(tool.title).tag(tool)
                     }
@@ -374,10 +374,10 @@ struct CaptureImageEditor: View {
                 .fixedSize()
 
                 if model.tool == .stamp {
-                    Picker("Symbol", selection: $model.symbol) {
+                    Picker(String(localized: "Symbol"), selection: $model.symbol) {
                         ForEach(CaptureEditorModel.symbols, id: \.self) { symbol in
                             if symbol == "#" {
-                                Label("Nummer (zählt hoch)", systemImage: "number.circle.fill").tag(symbol)
+                                Label(String(localized: "Nummer (zählt hoch)"), systemImage: "number.circle.fill").tag(symbol)
                             } else {
                                 Image(systemName: symbol).tag(symbol)
                             }
@@ -400,7 +400,7 @@ struct CaptureImageEditor: View {
 
                 Slider(value: $model.width, in: 1...12)
                     .frame(width: 90)
-                    .help("Strichstärke und Größe")
+                    .help(String(localized: "Strichstärke und Größe"))
 
                 Button {
                     model.undo()
@@ -409,16 +409,16 @@ struct CaptureImageEditor: View {
                 }
                 .keyboardShortcut("z", modifiers: .command)
                 .disabled(model.marks.isEmpty && model.textEntry == nil)
-                .help("Letzte Markierung zurücknehmen (⌘Z)")
+                .help(String(localized: "Letzte Markierung zurücknehmen (⌘Z)"))
 
                 Spacer(minLength: 8)
 
                 HStack(spacing: 6) {
-                    IconActionButton(title: "Text erkennen", icon: "text.viewfinder") { model.recognizeText() }
-                    IconActionButton(title: "In Ablage", icon: "tray.and.arrow.down") { model.sendToShelf() }
-                    IconActionButton(title: "Kopieren", icon: "doc.on.doc") { model.copy() }
+                    IconActionButton(title: String(localized: "Text erkennen"), icon: "text.viewfinder") { model.recognizeText() }
+                    IconActionButton(title: String(localized: "In Ablage"), icon: "tray.and.arrow.down") { model.sendToShelf() }
+                    IconActionButton(title: String(localized: "Kopieren"), icon: "doc.on.doc") { model.copy() }
                         .keyboardShortcut("c", modifiers: [.command, .shift])
-                    IconActionButton(title: "Sichern", icon: "square.and.arrow.down", prominent: true) { model.save() }
+                    IconActionButton(title: String(localized: "Sichern"), icon: "square.and.arrow.down", prominent: true) { model.save() }
                         .keyboardShortcut("s", modifiers: .command)
                 }
                 .fixedSize()
@@ -433,10 +433,10 @@ struct CaptureImageEditor: View {
 
     private var statusBar: some View {
         HStack {
-            Text(model.notice ?? (model.tool == .text ? "Ins Bild klicken und lostippen. Enter schließt ab." : "Das unbearbeitete Bild liegt bereits in der Zwischenablage."))
+            Text(model.notice ?? (model.tool == .text ? String(localized: "Ins Bild klicken und lostippen. Enter schließt ab.") : String(localized: "Das unbearbeitete Bild liegt bereits in der Zwischenablage.")))
                 .lineLimit(1)
             Spacer()
-            Text("\(model.image.width) × \(model.image.height) Pixel")
+            Text(String(localized: "\(model.image.width) × \(model.image.height) Pixel"))
         }
         .font(.caption)
         .foregroundStyle(.secondary)
@@ -451,15 +451,15 @@ private struct RecognizedTextSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Erkannter Text").font(.headline)
+            Text(String(localized: "Erkannter Text")).font(.headline)
             TextEditor(text: $text)
                 .font(.body)
                 .frame(minWidth: 460, minHeight: 240)
             HStack {
                 Spacer()
-                Button("Schließen", action: onClose)
+                Button(String(localized: "Schließen"), action: onClose)
                     .keyboardShortcut(.cancelAction)
-                Button("Kopieren") {
+                Button(String(localized: "Kopieren")) {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(text, forType: .string)
                     onClose()
@@ -495,18 +495,18 @@ struct CaptureVideoViewer: View {
                     .lineLimit(1)
                 Spacer(minLength: 8)
                 HStack(spacing: 6) {
-                    IconActionButton(title: "Kopieren", icon: "doc.on.doc", edge: .top) {
+                    IconActionButton(title: String(localized: "Kopieren"), icon: "doc.on.doc", edge: .top) {
                         NSPasteboard.general.clearContents()
                         NSPasteboard.general.writeObjects([url as NSURL])
-                        notice = "Videodatei in die Zwischenablage kopiert."
+                        notice = String(localized: "Videodatei in die Zwischenablage kopiert.")
                     }
-                    IconActionButton(title: "In Ablage", icon: "tray.and.arrow.down", edge: .top) {
+                    IconActionButton(title: String(localized: "In Ablage"), icon: "tray.and.arrow.down", edge: .top) {
                         if let provider = NSItemProvider(contentsOf: url) {
                             ShelfStateViewModel.shared.load([provider])
-                            notice = "In die Ablage der Island gelegt."
+                            notice = String(localized: "In die Ablage der Island gelegt.")
                         }
                     }
-                    IconActionButton(title: "Sichern", icon: "square.and.arrow.down", prominent: true, edge: .top) { save() }
+                    IconActionButton(title: String(localized: "Sichern"), icon: "square.and.arrow.down", prominent: true, edge: .top) { save() }
                         .keyboardShortcut("s", modifiers: .command)
                 }
                 .fixedSize()
@@ -530,9 +530,9 @@ struct CaptureVideoViewer: View {
         do {
             try? FileManager.default.removeItem(at: target)
             try FileManager.default.copyItem(at: url, to: target)
-            notice = "Gesichert: \(target.lastPathComponent)"
+            notice = String(localized: "Gesichert: \(target.lastPathComponent)")
         } catch {
-            notice = "Sichern fehlgeschlagen: \(error.localizedDescription)"
+            notice = String(localized: "Sichern fehlgeschlagen: \(error.localizedDescription)")
         }
     }
 }
@@ -550,11 +550,11 @@ final class CaptureWindows: NSObject, NSWindowDelegate {
         let model = CaptureEditorModel(image: capture.image, scale: capture.scale)
         // Room for the shot plus toolbar, within what fits on screen.
         let content = CGSize(width: model.pointSize.width + 32, height: model.pointSize.height + 32 + 80)
-        present(CaptureImageEditor(model: model), title: "Bildschirmfoto", size: content)
+        present(CaptureImageEditor(model: model), title: String(localized: "Bildschirmfoto"), size: content)
     }
 
     func show(video url: URL) {
-        present(CaptureVideoViewer(url: url), title: "Bildschirmvideo", size: CGSize(width: 900, height: 600))
+        present(CaptureVideoViewer(url: url), title: String(localized: "Bildschirmvideo"), size: CGSize(width: 900, height: 600))
     }
 
     private func present(_ view: some View, title: String, size: CGSize) {

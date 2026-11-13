@@ -25,8 +25,8 @@ enum IslandStartView: String, CaseIterable, Identifiable, Defaults.Serializable 
 
     var title: String {
         switch self {
-        case .shelfWhenFilled: "Ablage, wenn Dateien darin liegen"
-        case .lastUsed: "Zuletzt genutzte Ansicht"
+        case .shelfWhenFilled: String(localized: "Ablage, wenn Dateien darin liegen")
+        case .lastUsed: String(localized: "Zuletzt genutzte Ansicht")
         default: fixedView?.title ?? rawValue
         }
     }

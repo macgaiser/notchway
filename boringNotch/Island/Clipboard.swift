@@ -90,7 +90,7 @@ struct ClipboardView: View {
 
     var body: some View {
         if history.items.isEmpty {
-            IslandEmptyState(icon: "doc.on.clipboard", text: "Noch nichts kopiert")
+            IslandEmptyState(icon: "doc.on.clipboard", text: String(localized: "Noch nichts kopiert"))
         } else {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
@@ -121,7 +121,7 @@ struct ClipboardView: View {
                     .lineLimit(5)
                     .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                Text(copiedID == item.id ? "Kopiert" : item.date.formatted(.relative(presentation: .named)))
+                Text(copiedID == item.id ? String(localized: "Kopiert") : item.date.formatted(.relative(presentation: .named)))
                     .font(.caption2)
                     .foregroundStyle(copiedID == item.id ? .green : .secondary)
             }
@@ -132,10 +132,10 @@ struct ClipboardView: View {
         }
         .buttonStyle(IslandTileStyle())
         .contextMenu {
-            Button("Eintrag löschen") { history.remove(item) }
-            Button("Gesamten Verlauf löschen") { history.clear() }
+            Button(String(localized: "Eintrag löschen")) { history.remove(item) }
+            Button(String(localized: "Gesamten Verlauf löschen")) { history.clear() }
         }
-        .help("Klicken, um wieder in die Zwischenablage zu kopieren")
+        .help(String(localized: "Klicken, um wieder in die Zwischenablage zu kopieren"))
     }
 }
 

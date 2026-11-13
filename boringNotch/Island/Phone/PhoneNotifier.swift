@@ -27,7 +27,7 @@ final class PhoneNotifier: NSObject, UNUserNotificationCenterDelegate {
         center.delegate = self
         let reply = UNTextInputNotificationAction(
             identifier: Self.replyAction, title: "Antworten", options: [],
-            textInputButtonTitle: "Senden", textInputPlaceholder: "Nachricht"
+            textInputButtonTitle: String(localized: "Senden"), textInputPlaceholder: String(localized: "Nachricht")
         )
         center.setNotificationCategories([
             UNNotificationCategory(identifier: Self.replyCategory, actions: [reply], intentIdentifiers: []),

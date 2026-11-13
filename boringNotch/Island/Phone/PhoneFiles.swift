@@ -114,7 +114,7 @@ final class PhoneFiles: ObservableObject {
         pulling.insert(port)
         let token = data["token"] as? String ?? ""
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("phone-receive-\(UUID().uuidString)", isDirectory: true)
-        show("Empfange Datei vom Handy …")
+        show(String(localized: "Empfange Datei vom Handy …"))
 
         var arguments = ["pull", "--host", host, "--port", String(port), "--fingerprint", fingerprint, "--out", folder.path]
         if !token.isEmpty { arguments += ["--token", token] }
@@ -124,14 +124,14 @@ final class PhoneFiles: ObservableObject {
             let files = (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
             guard status == 0, !files.isEmpty else {
                 self.log("pull failed (\(status)): \(errors)")
-                self.show("Die Datei vom Handy kam nicht an.", clearAfter: 8)
+                self.show(String(localized: "Die Datei vom Handy kam nicht an."), clearAfter: 8)
                 try? FileManager.default.removeItem(at: folder)
                 return
             }
             let saved = self.moveToDownloads(files)
             try? FileManager.default.removeItem(at: folder)
             self.log("received \(saved.count) file(s)")
-            self.show(saved.count == 1 ? "Empfangen: \(saved[0].lastPathComponent)" : "\(saved.count) Dateien empfangen", clearAfter: 8)
+            self.show(saved.count == 1 ? String(localized: "Empfangen: \(saved[0].lastPathComponent)") : String(localized: "\(saved.count) Dateien empfangen"), clearAfter: 8)
             self.announce(saved)
         }
     }
@@ -160,8 +160,8 @@ final class PhoneFiles: ObservableObject {
     private func announce(_ files: [URL]) {
         guard let first = files.first else { return }
         let content = UNMutableNotificationContent()
-        content.title = files.count == 1 ? "Datei vom Handy empfangen" : "\(files.count) Dateien vom Handy empfangen"
-        content.body = files.count == 1 ? "\(first.lastPathComponent) liegt im Ordner Downloads." : "Sie liegen im Ordner Downloads."
+        content.title = files.count == 1 ? String(localized: "Datei vom Handy empfangen") : String(localized: "\(files.count) Dateien vom Handy empfangen")
+        content.body = files.count == 1 ? String(localized: "\(first.lastPathComponent) liegt im Ordner Downloads.") : String(localized: "Sie liegen im Ordner Downloads.")
         content.sound = .default
         UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: "island.phone.file.\(UUID().uuidString)", content: content, trigger: nil))
         NSWorkspace.shared.activateFileViewerSelecting(files)
@@ -170,8 +170,8 @@ final class PhoneFiles: ObservableObject {
     /// The phone stores a received file without saying so, so the Mac confirms it.
     private func announceSent(_ label: String) {
         let content = UNMutableNotificationContent()
-        content.title = "An das Handy gesendet"
-        content.body = "\(label) liegt auf dem Handy im Ordner Download."
+        content.title = String(localized: "An das Handy gesendet")
+        content.body = String(localized: "\(label) liegt auf dem Handy im Ordner Download.")
         UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: "island.phone.sent.\(UUID().uuidString)", content: content, trigger: nil))
     }
 
@@ -190,15 +190,15 @@ final class PhoneFiles: ObservableObject {
 
     func send(_ urls: [URL]) {
         guard isAvailable else {
-            show("Die Dateiübertragung fehlt in dieser App-Version.", clearAfter: 8)
+            show(String(localized: "Die Dateiübertragung fehlt in dieser App-Version."), clearAfter: 8)
             return
         }
         guard link.status.connected else {
-            show("Das Handy ist nicht verbunden.", clearAfter: 6)
+            show(String(localized: "Das Handy ist nicht verbunden."), clearAfter: 6)
             return
         }
         guard !isSending else {
-            show("Es läuft bereits eine Übertragung.", clearAfter: 5)
+            show(String(localized: "Es läuft bereits eine Übertragung."), clearAfter: 5)
             return
         }
 
@@ -217,14 +217,14 @@ final class PhoneFiles: ObservableObject {
             if (try? FileManager.default.copyItem(at: url, to: copy)) != nil { copies.append(copy) }
         }
         guard !copies.isEmpty else {
-            show("Ordner lassen sich noch nicht senden, nur einzelne Dateien.", clearAfter: 8)
+            show(String(localized: "Ordner lassen sich noch nicht senden, nur einzelne Dateien."), clearAfter: 8)
             try? FileManager.default.removeItem(at: folder)
             return
         }
 
         isSending = true
-        let label = copies.count == 1 ? copies[0].lastPathComponent : "\(copies.count) Dateien"
-        show("Sende \(label) …")
+        let label = copies.count == 1 ? copies[0].lastPathComponent : String(localized: "\(copies.count) Dateien")
+        show(String(localized: "Sende \(label) …"))
         log("send \(copies.count) file(s)")
 
         var contacted = false
@@ -249,11 +249,11 @@ final class PhoneFiles: ObservableObject {
             try? FileManager.default.removeItem(at: folder)
             if status == 0 {
                 self.log("send finished")
-                self.show("Gesendet: \(label)", clearAfter: 8)
+                self.show(String(localized: "Gesendet: \(label)"), clearAfter: 8)
                 self.announceSent(label)
             } else {
                 self.log("send failed (\(status)): \(errors)")
-                self.show(contacted ? "Die Übertragung wurde abgebrochen." : "Das Handy hat die Datei nicht abgeholt.", clearAfter: 10)
+                self.show(contacted ? String(localized: "Die Übertragung wurde abgebrochen.") : String(localized: "Das Handy hat die Datei nicht abgeholt."), clearAfter: 10)
             }
         }
     }

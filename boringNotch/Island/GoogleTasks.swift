@@ -67,7 +67,7 @@ enum GoogleTasksAPI {
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard (200..<300).contains(status) else {
             let detail = (try? JSONDecoder().decode(APIFailure.self, from: data))?.error.message
-            throw GoogleAuthError.server(detail ?? "Antwort \(status)")
+            throw GoogleAuthError.server(detail ?? String(localized: "Antwort \(status)"))
         }
         return data
     }
@@ -229,10 +229,10 @@ struct TasksView: View {
                         toolbar
                         content
                     }
-                    .islandInfo(isShown: $showInfo, title: "Was zeigt diese Ansicht?", points: [
-                        "Hier stehen deine Listen aus Google Tasks. Änderungen gehen direkt an Google und erscheinen auch in der Google-Tasks-App.",
-                        "Aus Google Notizen (Keep) kommen nur Notizen mit Erinnerung hierher: Google legt für jede Erinnerung selbst eine Aufgabe an. Notizen ohne Erinnerung bleiben in Keep.",
-                        "Die Liste „\(TasksStore.notesListTitle)“ gehört zur Ansicht „Notizen“ und ist hier ausgeblendet.",
+                    .islandInfo(isShown: $showInfo, title: String(localized: "Was zeigt diese Ansicht?"), points: [
+                        String(localized: "Hier stehen deine Listen aus Google Tasks. Änderungen gehen direkt an Google und erscheinen auch in der Google-Tasks-App."),
+                        String(localized: "Aus Google Notizen (Keep) kommen nur Notizen mit Erinnerung hierher: Google legt für jede Erinnerung selbst eine Aufgabe an. Notizen ohne Erinnerung bleiben in Keep."),
+                        String(localized: "Die Liste „\(TasksStore.notesListTitle)“ gehört zur Ansicht „Notizen“ und ist hier ausgeblendet."),
                     ])
                     .transition(.opacity)
                 }
@@ -246,8 +246,8 @@ struct TasksView: View {
             }
         } else {
             VStack(spacing: 8) {
-                IslandEmptyState(icon: "checklist", text: "Google-Konto noch nicht verbunden")
-                Button("In den Einstellungen verbinden") {
+                IslandEmptyState(icon: "checklist", text: String(localized: "Google-Konto noch nicht verbunden"))
+                Button(String(localized: "In den Einstellungen verbinden")) {
                     SettingsWindowController.shared.showWindow()
                     vm.close()
                 }
@@ -258,7 +258,7 @@ struct TasksView: View {
     }
 
     private var selectedListTitle: String {
-        store.visibleLists.first { $0.id == store.selectedListID }?.title ?? "Liste"
+        store.visibleLists.first { $0.id == store.selectedListID }?.title ?? String(localized: "Liste")
     }
 
     private static func shortened(_ title: String, to limit: Int = 34) -> String {
@@ -279,7 +279,7 @@ struct TasksView: View {
             .menuStyle(.borderlessButton)
             .fixedSize()
 
-            TextField("Neue Aufgabe", text: $newTitle)
+            TextField(String(localized: "Neue Aufgabe"), text: $newTitle)
                 .textFieldStyle(.plain)
                 .font(.callout)
                 .padding(.vertical, 5)
@@ -300,7 +300,7 @@ struct TasksView: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(.secondary)
-            .help("Mit Google abgleichen")
+            .help(String(localized: "Mit Google abgleichen"))
 
             IslandInfoButton(isShown: $showInfo)
         }
@@ -316,7 +316,7 @@ struct TasksView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         if store.tasks.isEmpty {
-            IslandEmptyState(icon: "checkmark.circle", text: store.isLoading ? "Lade Aufgaben …" : "Keine offenen Aufgaben")
+            IslandEmptyState(icon: "checkmark.circle", text: store.isLoading ? String(localized: "Lade Aufgaben …") : String(localized: "Keine offenen Aufgaben"))
         } else {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 2) {
@@ -337,13 +337,13 @@ struct TasksView: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
-            .help("Als erledigt markieren")
+            .help(String(localized: "Als erledigt markieren"))
 
             Button {
                 editing = task
             } label: {
                 HStack(spacing: 6) {
-                    Text(task.title.isEmpty ? "Ohne Titel" : task.title)
+                    Text(task.title.isEmpty ? String(localized: "Ohne Titel") : task.title)
                         .font(.callout)
                         .foregroundStyle(.white)
                         .lineLimit(1)
@@ -362,14 +362,14 @@ struct TasksView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .help("Öffnen und bearbeiten")
+            .help(String(localized: "Öffnen und bearbeiten"))
         }
         .padding(.vertical, 4)
         .padding(.horizontal, 6)
         .contentShape(Rectangle())
         .contextMenu {
-            Button("Bearbeiten") { editing = task }
-            Button("Aufgabe löschen") { Task { await store.delete(task) } }
+            Button(String(localized: "Bearbeiten")) { editing = task }
+            Button(String(localized: "Aufgabe löschen")) { Task { await store.delete(task) } }
         }
     }
 }
@@ -403,7 +403,7 @@ struct TaskEditor: View {
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             VStack(spacing: 6) {
-                TextField("Titel", text: $title)
+                TextField(String(localized: "Titel"), text: $title)
                     .textFieldStyle(.plain)
                     .font(.headline)
                     .padding(.vertical, 5)
@@ -418,7 +418,7 @@ struct TaskEditor: View {
                     .background(RoundedRectangle(cornerRadius: 9).fill(Color.white.opacity(0.07)))
                     .overlay(alignment: .topLeading) {
                         if notes.isEmpty {
-                            Text("Details")
+                            Text(String(localized: "Details"))
                                 .font(.callout)
                                 .foregroundStyle(.tertiary)
                                 .padding(.top, 5)
@@ -429,12 +429,12 @@ struct TaskEditor: View {
             }
 
             VStack(alignment: .leading, spacing: 8) {
-                Toggle("Termin", isOn: $hasDue)
+                Toggle(String(localized: "Termin"), isOn: $hasDue)
                     .toggleStyle(.switch)
                     .controlSize(.mini)
                     .font(.caption)
                 if hasDue {
-                    DatePicker("Termin", selection: $due, displayedComponents: .date)
+                    DatePicker(String(localized: "Termin"), selection: $due, displayedComponents: .date)
                         .datePickerStyle(.stepperField)
                         .labelsHidden()
                         .controlSize(.small)
@@ -447,7 +447,7 @@ struct TaskEditor: View {
                         .lineLimit(2)
                 }
                 HStack(spacing: 6) {
-                    Button(isSaving ? "Speichere …" : changed ? "Sichern" : "Zurück") {
+                    Button(isSaving ? String(localized: "Speichere …") : changed ? String(localized: "Sichern") : String(localized: "Zurück")) {
                         Task { await saveAndClose() }
                     }
                     .keyboardShortcut(.cancelAction)
@@ -459,7 +459,7 @@ struct TaskEditor: View {
                     } label: {
                         Image(systemName: "checkmark")
                     }
-                    .help("Als erledigt markieren")
+                    .help(String(localized: "Als erledigt markieren"))
                     Button(role: .destructive) {
                         closed = true
                         onClose()
@@ -467,7 +467,7 @@ struct TaskEditor: View {
                     } label: {
                         Image(systemName: "trash")
                     }
-                    .help("Aufgabe löschen")
+                    .help(String(localized: "Aufgabe löschen"))
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)

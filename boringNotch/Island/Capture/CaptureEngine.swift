@@ -19,10 +19,10 @@ enum CaptureError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .noPermission:
-            "Die Berechtigung „Bildschirmaufnahme“ fehlt. Bitte in den Systemeinstellungen unter Datenschutz & Sicherheit erlauben und die App danach neu starten."
-        case .displayNotFound: "Der Bildschirm wurde nicht gefunden."
-        case .windowNotFound: "Das Fenster ist nicht mehr vorhanden."
-        case .needsNewerSystem: "Videoaufnahmen brauchen macOS 15 oder neuer."
+            String(localized: "Die Berechtigung „Bildschirmaufnahme“ fehlt. Bitte in den Systemeinstellungen unter Datenschutz & Sicherheit erlauben und die App danach neu starten.")
+        case .displayNotFound: String(localized: "Der Bildschirm wurde nicht gefunden.")
+        case .windowNotFound: String(localized: "Das Fenster ist nicht mehr vorhanden.")
+        case .needsNewerSystem: String(localized: "Videoaufnahmen brauchen macOS 15 oder neuer.")
         case .failed(let reason): reason
         }
     }
@@ -161,7 +161,7 @@ final class ScreenRecorder: NSObject, ObservableObject {
 
     /// Stops and returns the finished file.
     func stop() async throws -> URL {
-        guard isRecording, let stream, let outputURL else { throw CaptureError.failed("Es läuft keine Aufnahme.") }
+        guard isRecording, let stream, let outputURL else { throw CaptureError.failed(String(localized: "Es läuft keine Aufnahme.")) }
         isRecording = false
         startedAt = nil
         try? await stream.stopCapture()
@@ -176,7 +176,7 @@ final class ScreenRecorder: NSObject, ObservableObject {
 
         if let failure { throw CaptureError.failed(failure) }
         guard FileManager.default.fileExists(atPath: outputURL.path) else {
-            throw CaptureError.failed("Die Videodatei wurde nicht geschrieben.")
+            throw CaptureError.failed(String(localized: "Die Videodatei wurde nicht geschrieben."))
         }
         return outputURL
     }

@@ -18,7 +18,7 @@ xcodebuild -project boringNotch.xcodeproj -scheme boringNotch -configuration Deb
   build 2>&1 | grep -E "error:|BUILD (SUCCEEDED|FAILED)" -A5 | tail -40
 [[ ${pipestatus[1]} -eq 0 ]] || exit 1
 
-APP="build/Build/Products/Debug/Boring Notch.app"
+APP="build/Build/Products/Debug/Notchway.app"
 
 # Phone service (Smart Connect daemon). Its source lives outside this repository for now;
 # set ISLAND_DAEMON_SRC to its checkout. Without it the app builds, minus the "Handy" view.
@@ -60,7 +60,7 @@ if [[ -f "$DAEMON_SRC/Cargo.toml" ]]; then
 fi
 
 if [[ "$1" == "--run" ]]; then
-  osascript -e 'tell application id "theboringteam.boringnotch" to quit' 2>/dev/null
+  osascript -e 'tell application id "io.github.macgaiser.notchway" to quit' 2>/dev/null
   sleep 2
   # The media helper (a perl script) can outlive the app it belonged to.
   ps -axo pid,ppid,command | grep "${PWD}/build" | grep perl | awk '$2==1{print $1}' | xargs kill 2>/dev/null

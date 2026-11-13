@@ -19,7 +19,7 @@ struct IslandNote: Codable, Identifiable, Hashable {
 
     var title: String {
         let firstLine = text.split(separator: "\n", omittingEmptySubsequences: true).first.map(String.init) ?? ""
-        return firstLine.isEmpty ? "Neue Notiz" : firstLine
+        return firstLine.isEmpty ? String(localized: "Neue Notiz") : firstLine
     }
 
     var isBlank: Bool { text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
@@ -191,10 +191,10 @@ struct NotesView: View {
             sidebar
             editor
         }
-        .islandInfo(isShown: $showInfo, title: "Wo liegen diese Notizen?", points: [
-            "Die Notizen liegen auf diesem Mac und, mit verbundenem Google-Konto, zusätzlich in Google Tasks in der Liste „\(TasksStore.notesListTitle)“. Am Handy findest du sie in der Google-Tasks-App.",
-            "Mit Google Notizen (Keep) ist kein Abgleich möglich: Google bietet dafür bei privaten Konten keine Schnittstelle. Notizen von hier erscheinen nicht in Keep, Keep-Notizen nicht hier.",
-            "Ohne Google-Konto bleiben die Notizen nur auf diesem Mac.",
+        .islandInfo(isShown: $showInfo, title: String(localized: "Wo liegen diese Notizen?"), points: [
+            String(localized: "Die Notizen liegen auf diesem Mac und, mit verbundenem Google-Konto, zusätzlich in Google Tasks in der Liste „\(TasksStore.notesListTitle)“. Am Handy findest du sie in der Google-Tasks-App."),
+            String(localized: "Mit Google Notizen (Keep) ist kein Abgleich möglich: Google bietet dafür bei privaten Konten keine Schnittstelle. Notizen von hier erscheinen nicht in Keep, Keep-Notizen nicht hier."),
+            String(localized: "Ohne Google-Konto bleiben die Notizen nur auf diesem Mac."),
         ])
         .task { await store.sync() }
         .onAppear { IslandFocus.allowsKey = true }
@@ -211,7 +211,7 @@ struct NotesView: View {
                 Button {
                     store.add()
                 } label: {
-                    Label("Neue Notiz", systemImage: "plus")
+                    Label(String(localized: "Neue Notiz"), systemImage: "plus")
                         .font(.caption)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.vertical, 5)
@@ -225,7 +225,7 @@ struct NotesView: View {
                     Image(systemName: store.syncError != nil ? "exclamationmark.icloud" : store.isSyncing ? "arrow.triangle.2.circlepath.icloud" : "checkmark.icloud")
                         .font(.caption)
                         .foregroundStyle(store.syncError != nil ? .red : .secondary)
-                        .help(store.syncError ?? (store.isSyncing ? "Gleiche mit Google ab …" : "Mit Google Tasks abgeglichen (Liste „\(TasksStore.notesListTitle)“)"))
+                        .help(store.syncError ?? (store.isSyncing ? String(localized: "Gleiche mit Google ab …") : String(localized: "Mit Google Tasks abgeglichen (Liste „\(TasksStore.notesListTitle)“)")))
                         .padding(.trailing, 4)
                 }
             }
@@ -251,7 +251,7 @@ struct NotesView: View {
                         }
                         .buttonStyle(.plain)
                         .contextMenu {
-                            Button("Notiz löschen") { store.delete(note) }
+                            Button(String(localized: "Notiz löschen")) { store.delete(note) }
                         }
                     }
                 }
@@ -263,7 +263,7 @@ struct NotesView: View {
     @ViewBuilder
     private var editor: some View {
         if store.selectedID == nil {
-            IslandEmptyState(icon: "note.text", text: "Noch keine Notiz")
+            IslandEmptyState(icon: "note.text", text: String(localized: "Noch keine Notiz"))
         } else {
             TextEditor(text: store.selectedText)
                 .font(.callout)

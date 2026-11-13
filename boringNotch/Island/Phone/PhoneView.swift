@@ -33,7 +33,7 @@ struct PhoneView: View {
     var body: some View {
         Group {
             if !link.daemonAvailable {
-                hint(icon: "exclamationmark.triangle", text: "Der Handy-Dienst fehlt in dieser App-Version. Bitte mit island-build.sh bauen.")
+                hint(icon: "exclamationmark.triangle", text: String(localized: "Der Handy-Dienst fehlt in dieser App-Version. Bitte mit island-build.sh bauen."))
             } else if !link.networkTrusted {
                 untrustedNetwork
             } else if !link.status.paired {
@@ -94,16 +94,16 @@ struct PhoneView: View {
             Image(systemName: "lock.shield")
                 .font(.title2)
                 .foregroundStyle(.secondary)
-            Text(link.network == nil ? "Kein Netzwerk erkannt" : "Dieses Netzwerk ist nicht als vertraut markiert")
+            Text(link.network == nil ? String(localized: "Kein Netzwerk erkannt") : String(localized: "Dieses Netzwerk ist nicht als vertraut markiert"))
                 .font(.callout.weight(.medium))
                 .foregroundStyle(.white)
-            Text("Der Handy-Dienst öffnet einen Netzwerk-Port und läuft deshalb nur in Netzwerken, denen du vertraust.")
+            Text(String(localized: "Der Handy-Dienst öffnet einen Netzwerk-Port und läuft deshalb nur in Netzwerken, denen du vertraust."))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
             if let network = link.network {
-                Button("Diesem Netzwerk vertrauen · \(network.label)") {
+                Button(String(localized: "Diesem Netzwerk vertrauen · \(network.label)")) {
                     link.trustCurrentNetwork()
                 }
                 .buttonStyle(.bordered)
@@ -119,14 +119,14 @@ struct PhoneView: View {
             Image(systemName: "qrcode")
                 .font(.title2)
                 .foregroundStyle(.secondary)
-            Text("Noch kein Handy gekoppelt")
+            Text(String(localized: "Noch kein Handy gekoppelt"))
                 .font(.callout.weight(.medium))
                 .foregroundStyle(.white)
-            Text("Auf dem Handy Smart Connect öffnen, auf + tippen und „QR-Code scannen“ wählen.")
+            Text(String(localized: "Auf dem Handy Smart Connect öffnen, auf + tippen und „QR-Code scannen“ wählen."))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-            pairButton(title: "Kopplungs-Code anzeigen")
+            pairButton(title: String(localized: "Kopplungs-Code anzeigen"))
             statusMessage
         }
         .padding(.horizontal, 40)
@@ -163,7 +163,7 @@ struct PhoneView: View {
             HStack(spacing: 6) {
                 Image(systemName: "smartphone")
                     .foregroundStyle(link.status.connected ? .green : .secondary)
-                Text(link.status.model ?? link.status.name ?? "Handy")
+                Text(link.status.model ?? link.status.name ?? String(localized: "Handy"))
                     .font(.callout.weight(.semibold))
                     .foregroundStyle(.white)
                     .lineLimit(1)
@@ -196,7 +196,7 @@ struct PhoneView: View {
                     }
                 }
             } else {
-                Text(link.message ?? "Nicht verbunden")
+                Text(link.message ?? String(localized: "Nicht verbunden"))
                     .font(.caption)
                     .foregroundStyle(link.message == nil ? Color.secondary : Color.orange)
                     .lineLimit(2)
@@ -205,19 +205,19 @@ struct PhoneView: View {
             // The two main actions fill the rest of the column.
             HStack(spacing: 6) {
                 if link.status.connected {
-                    actionTile("Spiegeln", icon: "rectangle.on.rectangle", highlighted: false) {
+                    actionTile(String(localized: "Spiegeln"), icon: "rectangle.on.rectangle", highlighted: false) {
                         PhoneStreams.shared.startMirror()
                         vm.close()
                     }
-                    actionTile(showingApps ? "Mitteilungen" : "Apps", icon: showingApps ? "bell.fill" : "square.grid.2x2.fill", highlighted: showingApps) {
+                    actionTile(showingApps ? String(localized: "Mitteilungen") : String(localized: "Apps"), icon: showingApps ? "bell.fill" : "square.grid.2x2.fill", highlighted: showingApps) {
                         showingApps.toggle()
                         if showingApps { streams.requestApps() }
                     }
                 } else {
-                    actionTile("Verbinden", icon: "link", highlighted: false) {
+                    actionTile(String(localized: "Verbinden"), icon: "link", highlighted: false) {
                         Task { await link.connect() }
                     }
-                    actionTile("Koppeln", icon: "qrcode", highlighted: false) {
+                    actionTile(String(localized: "Koppeln"), icon: "qrcode", highlighted: false) {
                         Task {
                             if let url = await link.newPairingCode() {
                                 PairingWindow.shared.show(codeAt: url)
@@ -231,8 +231,8 @@ struct PhoneView: View {
         }
         .frame(width: 190, alignment: .leading)
         .contextMenu {
-            Button("Verbindung trennen") { Task { await link.disconnect() } }
-            Button("Neu koppeln …") {
+            Button(String(localized: "Verbindung trennen")) { Task { await link.disconnect() } }
+            Button(String(localized: "Neu koppeln …")) {
                 Task {
                     if let url = await link.newPairingCode() {
                         PairingWindow.shared.show(codeAt: url)
@@ -311,9 +311,9 @@ struct PhoneView: View {
             )
             .contextMenu {
                 if isFavorite {
-                    Button("Aus Favoriten entfernen") { favorites.removeAll { $0.id == app.id } }
+                    Button(String(localized: "Aus Favoriten entfernen")) { favorites.removeAll { $0.id == app.id } }
                 } else {
-                    Button("Zu Favoriten hinzufügen") { pin(app, at: favorites.count) }
+                    Button(String(localized: "Zu Favoriten hinzufügen")) { pin(app, at: favorites.count) }
                         .disabled(favorites.count >= Self.maxFavorites)
                 }
             }
@@ -350,7 +350,7 @@ struct PhoneView: View {
         let targeted = dragged != nil && favoritesFrame.contains(dragLocation)
         return VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text("Favoriten")
+                Text(String(localized: "Favoriten"))
                 Spacer()
                 if !favorites.isEmpty {
                     Text("\(favorites.count)/\(Self.maxFavorites)")
@@ -368,7 +368,7 @@ struct PhoneView: View {
                     VStack(spacing: 6) {
                         Image(systemName: "star")
                             .font(.title3)
-                        Text("Apps von rechts hierher ziehen")
+                        Text(String(localized: "Apps von rechts hierher ziehen"))
                             .font(.caption2)
                             .multilineTextAlignment(.center)
                     }
@@ -396,7 +396,7 @@ struct PhoneView: View {
     private var appPicker: some View {
         VStack(spacing: 6) {
             HStack(spacing: 8) {
-                TextField("App suchen", text: $appSearch)
+                TextField(String(localized: "App suchen"), text: $appSearch)
                     .textFieldStyle(.plain)
                     .font(.callout)
                     .padding(.vertical, 4)
@@ -412,7 +412,7 @@ struct PhoneView: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .help(appsLandscape ? "Apps öffnen im Querformat (Tablet). Klicken für Hochformat." : "Apps öffnen im Hochformat (Handy). Klicken für Querformat.")
+                .help(appsLandscape ? String(localized: "Apps öffnen im Querformat (Tablet). Klicken für Hochformat.") : String(localized: "Apps öffnen im Hochformat (Handy). Klicken für Querformat."))
                 if let message = streams.message {
                     Text(message)
                         .font(.caption2)
@@ -421,7 +421,7 @@ struct PhoneView: View {
                 }
             }
             if streams.apps.isEmpty {
-                IslandEmptyState(icon: "square.grid.2x2", text: "Lade die Apps vom Handy …")
+                IslandEmptyState(icon: "square.grid.2x2", text: String(localized: "Lade die Apps vom Handy …"))
             } else {
                 ScrollView(.vertical, showsIndicators: false) {
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 5), spacing: 4) {
@@ -441,7 +441,7 @@ struct PhoneView: View {
         } else if let target = replyingTo {
             replyEditor(for: target)
         } else if link.status.notifications.isEmpty {
-            IslandEmptyState(icon: "bell.slash", text: link.status.connected ? "Keine Benachrichtigungen" : "Verbinde das Handy, um Benachrichtigungen zu sehen")
+            IslandEmptyState(icon: "bell.slash", text: link.status.connected ? String(localized: "Keine Benachrichtigungen") : String(localized: "Verbinde das Handy, um Benachrichtigungen zu sehen"))
         } else {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 4) {
@@ -484,7 +484,7 @@ struct PhoneView: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .help("Antworten")
+                .help(String(localized: "Antworten"))
             }
         }
         .padding(.vertical, 5)
@@ -494,7 +494,7 @@ struct PhoneView: View {
 
     private func replyEditor(for notification: PhoneNotification) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Antwort an \(notification.title.isEmpty ? notification.app : notification.title)")
+            Text(String(localized: "Antwort an \(notification.title.isEmpty ? notification.app : notification.title)"))
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.white)
                 .lineLimit(1)
@@ -502,7 +502,7 @@ struct PhoneView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
-            TextField("Nachricht", text: $replyText)
+            TextField(String(localized: "Nachricht"), text: $replyText)
                 .textFieldStyle(.plain)
                 .font(.callout)
                 .padding(.vertical, 5)
@@ -512,8 +512,8 @@ struct PhoneView: View {
             HStack {
                 statusMessage
                 Spacer()
-                Button("Abbrechen") { replyingTo = nil }
-                Button("Senden") { send(to: notification) }
+                Button(String(localized: "Abbrechen")) { replyingTo = nil }
+                Button(String(localized: "Senden")) { send(to: notification) }
                     .disabled(replyText.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             .buttonStyle(.bordered)
@@ -546,7 +546,7 @@ final class PairingWindow: NSObject, NSWindowDelegate {
             contentRect: CGRect(x: 0, y: 0, width: 460, height: 540),
             styleMask: [.titled, .closable], backing: .buffered, defer: false
         )
-        window.title = "Handy koppeln"
+        window.title = String(localized: "Handy koppeln")
         window.isReleasedWhenClosed = false
         window.contentView = NSHostingView(rootView: PairingCodeView(image: NSImage(contentsOf: url)))
         window.center()
@@ -574,9 +574,9 @@ private struct PairingCodeView: View {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 64))
                     .foregroundStyle(.green)
-                Text("Verbunden mit \(link.status.model ?? link.status.name ?? "dem Handy")")
+                Text(String(localized: "Verbunden mit \(link.status.model ?? link.status.name ?? "dem Handy")"))
                     .font(.title3.weight(.semibold))
-                Text("Du kannst dieses Fenster schließen.")
+                Text(String(localized: "Du kannst dieses Fenster schließen."))
                     .foregroundStyle(.secondary)
             } else {
                 if let image {
@@ -588,10 +588,10 @@ private struct PairingCodeView: View {
                         .background(Color.white)
                         .clipShape(RoundedRectangle(cornerRadius: 10))
                 } else {
-                    Text("Der Kopplungs-Code konnte nicht geladen werden.")
+                    Text(String(localized: "Der Kopplungs-Code konnte nicht geladen werden."))
                         .foregroundStyle(.red)
                 }
-                Text("Smart Connect auf dem Handy öffnen, auf + tippen und „QR-Code scannen“ wählen. Der Code gilt 10 Minuten.")
+                Text(String(localized: "Smart Connect auf dem Handy öffnen, auf + tippen und „QR-Code scannen“ wählen. Der Code gilt 10 Minuten."))
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)

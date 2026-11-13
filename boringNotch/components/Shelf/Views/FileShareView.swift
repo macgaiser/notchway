@@ -101,7 +101,7 @@ struct FileShareView: View {
                     .minimumScaleFactor(0.7)
                 // Below the name: a running transfer, or whether the phone can be reached at all.
                 if sendsToPhone {
-                    Text(phoneFiles.activity ?? (phone.status.connected ? "Verbunden" : "Nicht verbunden"))
+                    Text(phoneFiles.activity ?? (phone.status.connected ? String(localized: "Verbunden") : String(localized: "Nicht verbunden")))
                         .font(.caption2)
                         .foregroundColor(phoneFiles.activity != nil ? .white.opacity(0.8) : phone.status.connected ? .green.opacity(0.8) : .orange.opacity(0.9))
                         .lineLimit(2)

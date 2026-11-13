@@ -37,7 +37,7 @@ struct MusicLauncherButton: View {
                 .contentShape(Capsule())
             }
             .buttonStyle(.plain)
-            .help("\(item.name) öffnen")
+            .help(String(localized: "\(item.name) öffnen"))
         }
     }
 }

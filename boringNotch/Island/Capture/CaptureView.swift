@@ -33,7 +33,7 @@ final class CaptureCoordinator: ObservableObject {
 
     func captureArea() {
         guard ensurePermission() else { return }
-        select(.area, hint: "Rahmen aufziehen · Esc bricht ab") { selection in
+        select(.area, hint: String(localized: "Rahmen aufziehen · Esc bricht ab")) { selection in
             guard case .area(let rect, let displayID) = selection else { return }
             let capture = try await CaptureEngine.image(of: rect, on: displayID)
             self.finish(capture)
@@ -42,7 +42,7 @@ final class CaptureCoordinator: ObservableObject {
 
     func captureWindow() {
         guard ensurePermission() else { return }
-        select(.window, hint: "Fenster anklicken · Esc bricht ab") { selection in
+        select(.window, hint: String(localized: "Fenster anklicken · Esc bricht ab")) { selection in
             guard case .window(let windowID) = selection else { return }
             let capture = try await CaptureEngine.image(ofWindow: windowID)
             self.finish(capture)
@@ -52,7 +52,7 @@ final class CaptureCoordinator: ObservableObject {
     func recordVideo() {
         guard ensurePermission() else { return }
         if Defaults[.islandVideoSelectArea] {
-            select(.area, hint: "Bereich für das Video aufziehen · Esc bricht ab") { selection in
+            select(.area, hint: String(localized: "Bereich für das Video aufziehen · Esc bricht ab")) { selection in
                 guard case .area(let rect, let displayID) = selection else { return }
                 try await self.startRecording(rect: rect, on: displayID)
             }
@@ -78,7 +78,7 @@ final class CaptureCoordinator: ObservableObject {
         var microphone = Defaults[.islandVideoMicrophone]
         if microphone, !(await AVCaptureDevice.requestAccess(for: .audio)) {
             microphone = false
-            message = "Kein Zugriff aufs Mikrofon – das Video wird ohne Mikrofon aufgenommen."
+            message = String(localized: "Kein Zugriff aufs Mikrofon – das Video wird ohne Mikrofon aufgenommen.")
         }
         try await ScreenRecorder.shared.start(
             rect: rect, on: displayID,
@@ -127,7 +127,7 @@ final class CaptureCoordinator: ObservableObject {
     private func report(_ error: Error) {
         message = error.localizedDescription
         let alert = NSAlert()
-        alert.messageText = "Aufnahme fehlgeschlagen"
+        alert.messageText = String(localized: "Aufnahme fehlgeschlagen")
         alert.informativeText = error.localizedDescription
         NSApp.activate(ignoringOtherApps: true)
         alert.runModal()
@@ -185,7 +185,7 @@ private struct RecordingStopControl: View {
                 Image(systemName: "stop.circle.fill")
                     .font(.title3)
                     .foregroundStyle(.red)
-                Text("Stopp")
+                Text(String(localized: "Stopp"))
                     .fontWeight(.semibold)
                 if let since = recorder.startedAt {
                     RecordingTime(since: since)
@@ -199,7 +199,7 @@ private struct RecordingStopControl: View {
             .contentShape(Capsule())
         }
         .buttonStyle(.plain)
-        .help("Aufnahme beenden und Video öffnen")
+        .help(String(localized: "Aufnahme beenden und Video öffnen"))
     }
 }
 
@@ -214,10 +214,10 @@ struct CaptureView: View {
     var body: some View {
         VStack(spacing: 6) {
             HStack(spacing: 10) {
-                tile("Rahmen", detail: "Bereich aufziehen", icon: "rectangle.dashed") {
+                tile(String(localized: "Rahmen"), detail: String(localized: "Bereich aufziehen"), icon: "rectangle.dashed") {
                     coordinator.captureArea()
                 }
-                tile("Fenster", detail: "Fenster anklicken", icon: "macwindow") {
+                tile(String(localized: "Fenster"), detail: String(localized: "Fenster anklicken"), icon: "macwindow") {
                     coordinator.captureWindow()
                 }
                 videoTile
@@ -250,10 +250,10 @@ struct CaptureView: View {
                         .font(.system(size: 24))
                         .foregroundStyle(recorder.isRecording ? .red : .white)
                         .frame(height: 28)
-                    Text(recorder.isRecording ? "Stopp" : "Video")
+                    Text(recorder.isRecording ? String(localized: "Stopp") : String(localized: "Video"))
                         .font(.callout.weight(.semibold))
                         .foregroundStyle(.white)
-                    Text(recorder.isRecording ? "Aufnahme läuft" : videoSelectArea ? "Bereich aufziehen" : "Ganzer Bildschirm")
+                    Text(recorder.isRecording ? String(localized: "Aufnahme läuft") : videoSelectArea ? String(localized: "Bereich aufziehen") : String(localized: "Ganzer Bildschirm"))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
@@ -264,12 +264,12 @@ struct CaptureView: View {
             .buttonStyle(IslandTileStyle(cornerRadius: 0))
 
             HStack(spacing: 1) {
-                videoOption("Ton", icon: "speaker.wave.2.fill", isOn: $videoSystemAudio,
-                            help: "Nimmt auf, was der Mac gerade abspielt")
-                videoOption("Mikro", icon: "mic.fill", isOn: $videoMicrophone,
-                            help: "Nimmt zusätzlich deine Stimme auf")
-                videoOption("Bereich", icon: "rectangle.dashed", isOn: $videoSelectArea,
-                            help: "An: vorher einen Bereich aufziehen. Aus: ganzer Bildschirm.")
+                videoOption(String(localized: "Ton"), icon: "speaker.wave.2.fill", isOn: $videoSystemAudio,
+                            help: String(localized: "Nimmt auf, was der Mac gerade abspielt"))
+                videoOption(String(localized: "Mikro"), icon: "mic.fill", isOn: $videoMicrophone,
+                            help: String(localized: "Nimmt zusätzlich deine Stimme auf"))
+                videoOption(String(localized: "Bereich"), icon: "rectangle.dashed", isOn: $videoSelectArea,
+                            help: String(localized: "An: vorher einen Bereich aufziehen. Aus: ganzer Bildschirm."))
             }
             .frame(height: 25)
             .disabled(recorder.isRecording)

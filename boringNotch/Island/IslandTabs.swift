@@ -12,15 +12,15 @@ import SwiftUI
 extension NotchViews {
     var title: String {
         switch self {
-        case .home: "Player & Kalender"
-        case .shelf: "Ablage"
-        case .quickLaunch: "Schnellstart"
-        case .clipboard: "Zwischenablage"
-        case .notes: "Notizen"
-        case .pomodoro: "Pomodoro"
-        case .tasks: "Aufgaben"
-        case .capture: "Aufnahme"
-        case .phone: "Handy"
+        case .home: String(localized: "Player & Kalender")
+        case .shelf: String(localized: "Ablage")
+        case .quickLaunch: String(localized: "Schnellstart")
+        case .clipboard: String(localized: "Zwischenablage")
+        case .notes: String(localized: "Notizen")
+        case .pomodoro: String(localized: "Pomodoro")
+        case .tasks: String(localized: "Aufgaben")
+        case .capture: String(localized: "Aufnahme")
+        case .phone: String(localized: "Handy")
         }
     }
 

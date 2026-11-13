@@ -292,6 +292,8 @@ struct GeneralSettings: View {
             NotchBehaviour()
 
             gestureControls()
+
+            LanguageSection()
         }
         .toolbar {
             Button("Quit app") {
