@@ -17,6 +17,8 @@ struct PhoneView: View {
     @State private var appSearch = ""
     @ObservedObject private var streams = PhoneStreams.shared
     @ObservedObject private var files = PhoneFiles.shared
+    @ObservedObject private var audio = PhoneAudio.shared
+    @Default(.islandPhoneAudio) private var audioOn
     @Default(.islandPhoneAppsLandscape) private var appsLandscape
     @Default(.islandPhoneFavorites) private var favorites
     /// App being dragged between the grid and the favorites, and where the pointer is.
@@ -167,6 +169,14 @@ struct PhoneView: View {
                     .font(.callout.weight(.semibold))
                     .foregroundStyle(.white)
                     .lineLimit(1)
+                Spacer(minLength: 0)
+                if link.status.connected { speakerButton }
+            }
+            if link.status.connected, audioOn, !audio.connected, !audio.playing {
+                Text(audio.message ?? String(localized: "Warte auf „Drahtloses Debugging“ am Handy …"))
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+                    .lineLimit(2)
             }
             if link.status.connected {
                 HStack(spacing: 10) {
@@ -241,6 +251,29 @@ struct PhoneView: View {
                 }
             }
         }
+    }
+
+    /// Sound of phone apps on the Mac: crossed out = off, accent colour = on and connected.
+    private var speakerButton: some View {
+        let state: (symbol: String, color: Color, help: String) = {
+            if !audioOn { return ("speaker.slash.fill", .secondary, String(localized: "Ton am Mac aus. Klicken zum Einschalten.")) }
+            if audio.playing { return ("speaker.wave.3.fill", .accentColor, String(localized: "Ton läuft am Mac. Klicken zum Ausschalten.")) }
+            if audio.connected { return ("speaker.wave.2.fill", .accentColor, String(localized: "Ton am Mac bereit: er startet mit dem nächsten App-Fenster. Klicken zum Ausschalten.")) }
+            return ("speaker.wave.2.fill", .orange, String(localized: "Ton wartet auf das Handy. Klicken zum Ausschalten."))
+        }()
+        return Button {
+            audioOn.toggle()
+            audio.configure()
+        } label: {
+            Image(systemName: state.symbol)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(state.color)
+                .symbolEffect(.variableColor.iterative, isActive: audio.playing)
+                .frame(width: 26, height: 22)
+                .background(RoundedRectangle(cornerRadius: 7).fill(Color.white.opacity(audioOn ? 0.12 : 0.06)))
+        }
+        .buttonStyle(.plain)
+        .help(state.help)
     }
 
     private func actionTile(_ title: String, icon: String, highlighted: Bool, action: @escaping () -> Void) -> some View {

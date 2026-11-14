@@ -46,7 +46,11 @@ swiftc -O -swift-version 5 \
 
 mkdir -p "$APP/Contents/Helpers"
 cp "$DAEMON_SRC/target/release/smartconnectd" "$DAEMON_SRC/target/release/smartconnect-fex" "$HELPER" "$APP/Contents/Helpers/"
-for tool in smartconnect-mac-helper smartconnect-fex smartconnectd; do
+SOUND_DIR="${ISLAND_SOUND_DIR:-../extern/scrcpy-5.0.1}"
+[[ -x "$SOUND_DIR/adb" && -f "$SOUND_DIR/scrcpy-server" ]] || { echo "Ton-Dienst fehlt: $SOUND_DIR" >&2; exit 1; }
+cp "$SOUND_DIR/adb" "$APP/Contents/Helpers/"
+cp "$SOUND_DIR/scrcpy-server" "$APP/Contents/Resources/scrcpy-server.jar"
+for tool in adb smartconnect-mac-helper smartconnect-fex smartconnectd; do
   codesign --force --sign - "$APP/Contents/Helpers/$tool" 2>&1 | grep -v "replacing existing signature"
 done
 

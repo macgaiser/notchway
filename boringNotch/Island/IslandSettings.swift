@@ -417,6 +417,8 @@ struct PhoneSettings: View {
                 Text(String(localized: "Für die Verbindung zum Handy nimmt der Mac Verbindungen aus dem lokalen Netzwerk an. Der Dienst dafür läuft nur in den hier aufgeführten Netzwerken und nur, solange die Ansicht „Handy“ eingeblendet ist. In jedem anderen Netzwerk ist er beendet und der Port geschlossen. Erkannt wird ein Netzwerk an seinem Router, nicht am Namen."))
             }
 
+            PhoneAudioSection()
+
             Section {
                 Toggle(String(localized: "Vom Mac zum Handy"), isOn: $phoneClipboardSend)
                 Toggle(String(localized: "Vom Handy zum Mac"), isOn: $phoneClipboardReceive)
@@ -505,6 +507,52 @@ struct LanguageSection: View {
             }
         } footer: {
             Text(String(localized: "Die App startet neu, damit die Sprache gilt."))
+        }
+    }
+}
+
+
+/// Sound of streamed phone apps on the Mac, through the phone's wireless debugging.
+struct PhoneAudioSection: View {
+    @Default(.islandPhoneAudio) private var enabled
+    @Default(.islandPhoneAudioOnPhone) private var onPhone
+    @ObservedObject private var audio = PhoneAudio.shared
+    @State private var code = ""
+
+    var body: some View {
+        Section {
+            Toggle(String(localized: "Ton von Handy-Apps am Mac abspielen"), isOn: $enabled)
+                .onChange(of: enabled) { _, _ in audio.configure() }
+            if enabled {
+                Toggle(String(localized: "Ton zusätzlich am Handy abspielen"), isOn: $onPhone)
+                LabeledContent(String(localized: "Verbindung"),
+                               value: audio.playing ? String(localized: "Ton läuft") : audio.connected ? String(localized: "Handy verbunden") : String(localized: "nicht verbunden"))
+                if !audio.connected {
+                    if audio.pairingAvailable {
+                        HStack {
+                            TextField(String(localized: "Kopplungscode"), text: $code, prompt: Text("123456"))
+                                .frame(maxWidth: 140)
+                            Button(String(localized: "Koppeln")) {
+                                audio.pair(code: code)
+                                code = ""
+                            }
+                            .disabled(code.trimmingCharacters(in: .whitespaces).count < 6)
+                        }
+                    }
+                    Button(String(localized: "Erneut verbinden")) { audio.connect() }
+                }
+                if !PhoneAudio.isInstalled {
+                    Text(String(localized: "Diese Version enthält den Ton-Dienst nicht."))
+                        .font(.caption).foregroundStyle(.red)
+                }
+                if let message = audio.message {
+                    Text(message).font(.caption).foregroundStyle(.secondary)
+                }
+            }
+        } header: {
+            Text(String(localized: "Ton über Drahtloses Debugging"))
+        } footer: {
+            Text(String(localized: "Einmal einrichten: Am Handy Entwickleroptionen einschalten (Einstellungen › Über das Telefon › 7-mal auf Build-Nummer tippen), dann unter Entwickleroptionen „Drahtloses Debugging“ einschalten und „Mit Kopplungscode koppeln“ öffnen. Der Code erscheint dort, der Mac erkennt das Fenster und du gibst den Code hier ein. Danach hört der Mac den Ton, solange ein Handy-App-Fenster offen ist. Das Drahtlose Debugging schaltet sich bei einem Netzwechsel aus und muss dann am Handy neu eingeschaltet werden."))
         }
     }
 }

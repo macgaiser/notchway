@@ -143,6 +143,20 @@ final class PhoneLink: ObservableObject {
     var controlSocketPath: String { controlSocket }
     /// Log of the file transfers, next to the service log.
     var fileLogURL: URL { stateDirectory.appendingPathComponent("files.log") }
+    /// Observations about phone audio during app streams (research for sound transfer).
+    var audioLogURL: URL { stateDirectory.appendingPathComponent("audio.log") }
+
+    func logAudio(_ line: String) {
+        let stamp = ISO8601DateFormatter().string(from: Date())
+        guard let data = "\(stamp) \(line)\n".data(using: .utf8) else { return }
+        if let handle = try? FileHandle(forWritingTo: audioLogURL) {
+            defer { try? handle.close() }
+            _ = try? handle.seekToEnd()
+            try? handle.write(contentsOf: data)
+        } else {
+            try? data.write(to: audioLogURL)
+        }
+    }
     private var controlSocket: String { socketDirectory.appendingPathComponent("control.sock").path }
 
     private var stateDirectory: URL {
@@ -254,6 +268,7 @@ final class PhoneLink: ObservableObject {
             startSubscriber()
             PhoneNotifier.shared.start(socketPath: socketDirectory.appendingPathComponent("notifications.sock").path)
             PhoneFiles.shared.start()
+            PhoneAudio.shared.configure()
         } catch {
             message = String(localized: "Der Handy-Dienst ließ sich nicht starten: \(error.localizedDescription)")
         }
@@ -356,14 +371,17 @@ final class PhoneLink: ObservableObject {
         lines = lines
             .map { $0.replacingOccurrences(of: "\u{1B}\\[[0-9;]*m", with: "", options: .regularExpression) }
             // QR block characters and the constant file-exchange polling carry no information.
-            .filter { !$0.contains("█") && !$0.contains("▀") && !$0.contains("▄") && !$0.contains("svc 168") }
+            .filter { !$0.contains("█") && !$0.contains("▀") && !$0.contains("▄") && !$0.contains("svc 168") && !$0.contains("svc 16 cmd 4") }
             // Keys, tokens and fingerprints are long runs of base64 characters.
             .map { $0.replacingOccurrences(of: "[A-Za-z0-9+/=_-]{32,}", with: "<verborgen>", options: .regularExpression) }
         let header = "daemon=\(daemonRunning) trusted=\(networkTrusted) connected=\(status.connected) paired=\(status.paired) notifications=\(status.notifications.count) unread=\(status.unread ?? -1)"
         let transfers = ((try? String(contentsOf: fileLogURL, encoding: .utf8)) ?? "").components(separatedBy: "\n")
             .map { $0.replacingOccurrences(of: "[A-Za-z0-9+/=_-]{32,}", with: "<verborgen>", options: .regularExpression) }
             .suffix(60)
-        let text = ([header] + lines.suffix(120) + ["--- Dateiübertragung ---"] + transfers).joined(separator: "\n")
+        let audio = ((try? String(contentsOf: audioLogURL, encoding: .utf8)) ?? "").components(separatedBy: "\n")
+            .map { $0.replacingOccurrences(of: "[A-Za-z0-9+/=_-]{48,}", with: "<verborgen>", options: .regularExpression) }
+            .suffix(60)
+        let text = ([header] + lines.suffix(120) + ["--- Dateiübertragung ---"] + transfers + ["--- Ton ---"] + audio).joined(separator: "\n")
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
         message = String(localized: "Diagnose kopiert. Füge sie in den Chat ein.")

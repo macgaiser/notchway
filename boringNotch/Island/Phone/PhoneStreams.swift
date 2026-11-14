@@ -180,7 +180,9 @@ final class PhoneStreams: ObservableObject {
     @Published private(set) var apps: [PhoneApp] = []
     @Published var message: String?
 
-    private var streams: [PhoneStreamWindow] = []
+    private var streams: [PhoneStreamWindow] = [] {
+        didSet { PhoneAudio.shared.streamsChanged(count: streams.count) }
+    }
     private var watching = false
     private var watchGeneration = 0
     private var heartbeat: Timer?
@@ -374,6 +376,20 @@ final class PhoneStreams: ObservableObject {
     private func handle(service: Int, _ message: [String: Any]) {
         let command = message["cmd"] as? Int
         let data = message["data"] as? [String: Any] ?? [:]
+
+        // Research on phone audio: what does the phone say about sound, and does its offer carry audio?
+        if service == 15, command == 21 {
+            let text = (try? JSONSerialization.data(withJSONObject: message, options: [.sortedKeys])).flatMap { String(data: $0, encoding: .utf8) } ?? "?"
+            link.logAudio("svc 15 cmd 21: \(text.prefix(700))")
+        }
+        if service == 15, command == 3, let offer = data["webRTCData"] as? String, offer.contains("sdp") {
+            let sdp = ((try? JSONSerialization.jsonObject(with: Data(offer.utf8))) as? [String: Any])?["sdp"] as? String ?? ""
+            let lines = sdp.components(separatedBy: CharacterSet(charactersIn: "\r\n")).filter {
+                $0.hasPrefix("m=") || $0.hasPrefix("a=sendrecv") || $0.hasPrefix("a=recvonly") || $0.hasPrefix("a=sendonly")
+                    || $0.hasPrefix("a=inactive") || $0.hasPrefix("a=mid") || $0.hasPrefix("a=group") || $0.contains("opus")
+            }
+            link.logAudio("offer pkg=\(data["pkg"] as? String ?? "?"): \(lines.joined(separator: " | "))")
+        }
 
         switch (service, command) {
         case (17, 1):

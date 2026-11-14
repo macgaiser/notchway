@@ -2766,6 +2766,22 @@
         }
       }
     },
+    "Am Handy zuerst „Mit Kopplungscode koppeln“ öffnen.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Am Handy zuerst „Mit Kopplungscode koppeln“ öffnen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On the phone, first open “Pair device with pairing code”."
+          }
+        }
+      }
+    },
     "An das Handy gesendet": {
       "localizations": {
         "de": {
@@ -7866,6 +7882,22 @@
         }
       }
     },
+    "Das Handy sendet den Ton in einem unbekannten Format.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Handy sendet den Ton in einem unbekannten Format."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The phone sends the sound in an unknown format."
+          }
+        }
+      }
+    },
     "Das Handy überträgt bereits an ein anderes Gerät.": {
       "localizations": {
         "de": {
@@ -8122,6 +8154,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "The start button appears in the player while nothing is playing. Choose one of your Quick Launch entries or any app. Which browser a website opens in is set per entry under “Quick Launch”."
+          }
+        }
+      }
+    },
+    "Der Ton vom Handy wurde beendet.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Ton vom Handy wurde beendet."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The sound from the phone ended."
+          }
+        }
+      }
+    },
+    "Der Ton-Dienst auf dem Handy startet nicht. Läuft das Drahtlose Debugging noch?": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Ton-Dienst auf dem Handy startet nicht. Läuft das Drahtlose Debugging noch?"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The sound service on the phone does not start. Is wireless debugging still on?"
+          }
+        }
+      }
+    },
+    "Der Ton-Dienst konnte nicht auf das Handy kopiert werden.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Ton-Dienst konnte nicht auf das Handy kopiert werden."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The sound service could not be copied to the phone."
           }
         }
       }
@@ -8639,6 +8719,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "This app does not exist on the phone."
+          }
+        }
+      }
+    },
+    "Diese Version enthält den Ton-Dienst nicht.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Version enthält den Ton-Dienst nicht."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This version does not include the sound service."
           }
         }
       }
@@ -9638,6 +9734,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Another window took over the video encoder."
+          }
+        }
+      }
+    },
+    "Einmal einrichten: Am Handy Entwickleroptionen einschalten (Einstellungen › Über das Telefon › 7-mal auf Build-Nummer tippen), dann unter Entwickleroptionen „Drahtloses Debugging“ einschalten und „Mit Kopplungscode koppeln“ öffnen. Der Code erscheint dort, der Mac erkennt das Fenster und du gibst den Code hier ein. Danach hört der Mac den Ton, solange ein Handy-App-Fenster offen ist. Das Drahtlose Debugging schaltet sich bei einem Netzwechsel aus und muss dann am Handy neu eingeschaltet werden.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einmal einrichten: Am Handy Entwickleroptionen einschalten (Einstellungen › Über das Telefon › 7-mal auf Build-Nummer tippen), dann unter Entwickleroptionen „Drahtloses Debugging“ einschalten und „Mit Kopplungscode koppeln“ öffnen. Der Code erscheint dort, der Mac erkennt das Fenster und du gibst den Code hier ein. Danach hört der Mac den Ton, solange ein Handy-App-Fenster offen ist. Das Drahtlose Debugging schaltet sich bei einem Netzwechsel aus und muss dann am Handy neu eingeschaltet werden."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set up once: turn on developer options on the phone (Settings › About phone › tap Build number 7 times), then turn on “Wireless debugging” and open “Pair device with pairing code”. The code appears there, the Mac notices the window and you enter the code here. After that the Mac plays the sound as long as a phone app window is open. Wireless debugging turns itself off when the network changes and has to be switched on again on the phone."
           }
         }
       }
@@ -10835,6 +10947,22 @@
         }
       }
     },
+    "Erneut verbinden": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erneut verbinden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reconnect"
+          }
+        }
+      }
+    },
     "Es konnte kein Kopplungs-Code erzeugt werden.": {
       "localizations": {
         "de": {
@@ -11720,6 +11848,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Whole screen"
+          }
+        }
+      }
+    },
+    "Gekoppelt.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gekoppelt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paired."
           }
         }
       }
@@ -12876,6 +13020,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "Pair phone"
+          }
+        }
+      }
+    },
+    "Handy nicht gekoppelt. Kopplungscode am Handy öffnen und hier eingeben.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Handy nicht gekoppelt. Kopplungscode am Handy öffnen und hier eingeben."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phone not paired. Open the pairing code on the phone and enter it here."
+          }
+        }
+      }
+    },
+    "Handy verbunden": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Handy verbunden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Phone connected"
           }
         }
       }
@@ -14305,6 +14481,22 @@
         }
       }
     },
+    "Kein Ton: Am Handy ist „Drahtloses Debugging“ aus. Einschalten, dann verbindet sich der Mac von selbst.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kein Ton: Am Handy ist „Drahtloses Debugging“ aus. Einschalten, dann verbindet sich der Mac von selbst."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No sound: wireless debugging is off on the phone. Turn it on and the Mac connects by itself."
+          }
+        }
+      }
+    },
     "Kein Zugriff aufs Mikrofon – das Video wird ohne Mikrofon aufgenommen.": {
       "localizations": {
         "de": {
@@ -14417,6 +14609,22 @@
         }
       }
     },
+    "Koppele …": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Koppele …"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pairing …"
+          }
+        }
+      }
+    },
     "Koppeln": {
       "localizations": {
         "de": {
@@ -14433,6 +14641,22 @@
         }
       }
     },
+    "Kopplung fehlgeschlagen. Code und Fenster am Handy prüfen.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopplung fehlgeschlagen. Code und Fenster am Handy prüfen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pairing failed. Check the code and the window on the phone."
+          }
+        }
+      }
+    },
     "Kopplungs-Code anzeigen": {
       "localizations": {
         "de": {
@@ -14445,6 +14669,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Show pairing code"
+          }
+        }
+      }
+    },
+    "Kopplungscode": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopplungscode"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pairing code"
           }
         }
       }
@@ -25350,6 +25590,150 @@
         }
       }
     },
+    "Ton am Mac aus. Klicken zum Einschalten.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ton am Mac aus. Klicken zum Einschalten."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sound on the Mac is off. Click to turn on."
+          }
+        }
+      }
+    },
+    "Ton am Mac bereit: er startet mit dem nächsten App-Fenster. Klicken zum Ausschalten.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ton am Mac bereit: er startet mit dem nächsten App-Fenster. Klicken zum Ausschalten."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sound on the Mac is ready: it starts with the next app window. Click to turn off."
+          }
+        }
+      }
+    },
+    "Ton läuft": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ton läuft"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sound playing"
+          }
+        }
+      }
+    },
+    "Ton läuft am Mac. Klicken zum Ausschalten.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ton läuft am Mac. Klicken zum Ausschalten."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sound is playing on the Mac. Click to turn off."
+          }
+        }
+      }
+    },
+    "Ton von Handy-Apps am Mac abspielen": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ton von Handy-Apps am Mac abspielen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Play sound of phone apps on the Mac"
+          }
+        }
+      }
+    },
+    "Ton wartet auf das Handy. Klicken zum Ausschalten.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ton wartet auf das Handy. Klicken zum Ausschalten."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sound is waiting for the phone. Click to turn off."
+          }
+        }
+      }
+    },
+    "Ton zusätzlich am Handy abspielen": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ton zusätzlich am Handy abspielen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Also play sound on the phone"
+          }
+        }
+      }
+    },
+    "Ton über Drahtloses Debugging": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ton über Drahtloses Debugging"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sound over wireless debugging"
+          }
+        }
+      }
+    },
+    "Ton-Experiment (Entwickler)": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ton-Experiment (Entwickler)"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sound experiment (developers)"
+          }
+        }
+      }
+    },
     "Trennen": {
       "localizations": {
         "de": {
@@ -26231,6 +26615,22 @@
         }
       }
     },
+    "Verbindung": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verbindung"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connection"
+          }
+        }
+      }
+    },
     "Verbindung getrennt. Den Zugriff kannst du zusätzlich in deinem Google-Konto unter „Sicherheit“ widerrufen.": {
       "localizations": {
         "de": {
@@ -26259,6 +26659,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Disconnect"
+          }
+        }
+      }
+    },
+    "Verbindung zum Ton-Dienst fehlgeschlagen.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verbindung zum Ton-Dienst fehlgeschlagen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connection to the sound service failed."
           }
         }
       }
@@ -26783,6 +27199,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "Waiting for the sign-in in the browser …"
+          }
+        }
+      }
+    },
+    "Warte auf „Drahtloses Debugging“ am Handy …": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Warte auf „Drahtloses Debugging“ am Handy …"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for “Wireless debugging” on the phone …"
           }
         }
       }
@@ -28139,6 +28571,22 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "已静音"
+          }
+        }
+      }
+    },
+    "nicht verbunden": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "nicht verbunden"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "not connected"
           }
         }
       }

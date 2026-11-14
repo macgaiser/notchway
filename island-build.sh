@@ -63,6 +63,15 @@ if [[ -f "$DAEMON_SRC/Cargo.toml" ]]; then
       cp "$FEX" "$APP/Contents/Helpers/smartconnect-fex"
       codesign --force --sign "$IDENTITY" "$APP/Contents/Helpers/smartconnect-fex" 2>&1 | grep -v "replacing existing signature"
     fi
+    # Sound of phone apps: adb and the scrcpy server (both Apache-2.0), see PhoneAudio.swift.
+    SOUND_DIR="${ISLAND_SOUND_DIR:-../extern/scrcpy-5.0.1}"
+    if [[ -x "$SOUND_DIR/adb" && -f "$SOUND_DIR/scrcpy-server" ]]; then
+      cp "$SOUND_DIR/adb" "$APP/Contents/Helpers/"
+      cp "$SOUND_DIR/scrcpy-server" "$APP/Contents/Resources/scrcpy-server.jar"
+      codesign --force --sign "$IDENTITY" "$APP/Contents/Helpers/adb" 2>&1 | grep -v "replacing existing signature"
+    else
+      echo "Ton-Dienst (adb, scrcpy-server) nicht gefunden: $SOUND_DIR" >&2
+    fi
     ENTITLEMENTS="$(mktemp -t island-entitlements)"
     codesign -d --entitlements "$ENTITLEMENTS" --xml "$APP" 2>/dev/null
     # No entitlements of its own: started by the app, the daemon inherits the app's sandbox.
